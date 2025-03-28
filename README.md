@@ -1,36 +1,35 @@
-# FJLES - {adicionar nome ao projeto}
+# Breve descrição
 
-Repositório criado para o versionamento de todos os códigos e dados utilizados pelo projeto " {adicionar nome do projeto}" desenvolvido para o Departamento de Pesquisa da Fundação José Luiz Egydio Setúbal (FJLES)
+*Este repositório contém um ShinyApp desenvolvido em R, organizado em uma estrutura modular para facilitar a manutenção e escalabilidade. O aplicativo consiste em um dashboard interativo desenvolvido para o Departamento de Pesquisa da Fundação José Luiz Egydio Setúbal (FJLES) para a visualização de dados do projeto "Investimento e Apoio para Garantia da Soberania e Segurança Alimentar e Nutricional no Brasil".*
 
-# Descrição do Projeto
+# Estrutura do repositório
 
-{solicitar descrição do projeto à equipe responsável}
-          
+> app.R – Script principal que inicializa a aplicação.
+
+> ui.R – Define a interface do usuário.
+
+> server.R – Contém a lógica do servidor.
+
+> global.R – Armazena variáveis globais e carregamento de pacotes.
+
+> dataprocessing.R – Processamento e manipulação dos dados utilizados na aplicação.
+
+> www/ – Diretório contendo arquivos estáticos como JavaScript (JS), CSS e imagens para personalização da interface.
+
+> data/ – Diretório contendo dados originais fornecidos pela fundação e suas versões tratadas para a elaboração das visualizações.
+
 # Status do Projeto
 
-Projeto *em desenvolvimento*
+Projeto *concluído*
 
-# Passo a passo 
+# Passo a passo
 
 > 1º passo: abrir o R project *shinyApp* em sua IDE;
 
-> 2º passo: rodar o R script *shinyApp.R*, que está na pasta *script* para visualizar a versão atual do Dashboard.
+> 2º passo: rodar o R script *app.R* para visualizar a versão atual do Dashboard.
 
 > Observação: atualizações nos scripts devem ser devidamente reportadas e comentadas.
 
-# Funcionalidades do Dashboard e demonstração da Aplicação
+# Desenvolvedor
 
-{atualizar pós v1}
-
-# Tecnologias utilizadas
-
-O projeto está sendo construído com a utilização da linguagem R, especialmente através da ferramenta *shiny*, desde o processamento de dados ao desenvolvimento do dashboard final.  
-
-# Desenvolvedores
-
-[Ana Ferreira](https://www.linkedin.com/in/ana-ferreira-b981a5186/) 
-
-# Equipe de Contribuidores
-
-{adicionar equipe responsável}
-            
+[Ana Ferreira](https://www.linkedin.com/in/ana-ferreira-b981a5186/)

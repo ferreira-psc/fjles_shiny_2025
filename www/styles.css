@@ -1,0 +1,160 @@
+/* Sidebar fixa */
+.main-sidebar {
+    position: fixed;
+}
+
+/* Cabeçalho fixo */
+.main-header {
+    position: fixed;
+    width: 100%;
+}
+
+/* Espaço para o conteúdo abaixo do cabeçalho */
+.content-wrapper {
+    margin-top: 70px;
+}
+
+/* Estilização do tema azul */
+.skin-blue .main-header .navbar {
+    background-color: #192A3D;
+    height: 70px;
+}
+
+.skin-blue .main-header .logo {
+    background-color: #192A3D;
+    height: 70px;
+}
+
+.skin-blue .main-sidebar {
+    background-color: #192A3D;
+    padding-top: 70px;
+}
+
+/* Centralizar botão de menu */
+.main-header .navbar .sidebar-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+/* Centralizar logo */
+.logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+/* Estilização dos rótulos do mapa */
+.label-marker {
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+    text-shadow: 1px 1px 2px black;
+}
+
+/* Botão transparente */
+.btn-transparent {
+    background-color: transparent !important;
+    border: none !important;
+    padding-left: 10px;
+}
+
+.btn-transparent:focus,
+.btn-transparent:active,
+.btn-transparent:hover {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Conteúdo colapsável */
+.collapsible-content {
+    display: none;
+    overflow: hidden;
+    transition: max-height 0.5s ease-out;
+}
+
+/* Célula truncada */
+.truncate-cell {
+    max-width: 200px;
+    max-height: 40px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    position: relative;
+}
+
+.expanded {
+    white-space: normal !important;
+    max-height: none !important;
+}
+
+.expand-button {
+    cursor: pointer;
+    color: blue;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+/* Tabela de execuções (Apenas sobre o mapa) */
+#tabela_execucoes_mapa_emp {
+    position: absolute;  /* Faz a tabela flutuar sobre o mapa */
+    top: 35px; left: 55px; right: 40px; bottom: 45px; /* Ajuste da posição conforme necessário */
+    background: rgba(255, 255, 255, 0.95); 
+    padding: 15px;
+    overflow: auto;  /* Adiciona rolagem se necessário */
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3); /* Adiciona sombra à tabela */
+    z-index: 10; /* Garante que a tabela fique acima do mapa */
+    display: none; /* Inicialmente oculta */
+}
+
+/* Botão de fechar */
+#fechar_tabela_mapa_emp {
+    position: absolute;
+    top: 5px; right: 5px;  /* Botão no canto superior direito da tabela */
+    cursor: pointer;
+    font-size: 18px;
+    background: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    z-index: 11; /* Garante que o botão fique sobre a tabela */
+}
+
+/* Ajuste para a tabela no seu conteúdo (se necessário) */
+#tabela_mapa1 {
+    width: 100%;  /* Garantir que a tabela ocupe toda a largura disponível */
+    max-height: 100%; /* Evita que ela ultrapasse os limites definidos pela div */
+}
+
+/* Tabela de execuções (Apenas sobre o mapa) */
+#tabela_execucoes_mapa_fund {
+    position: absolute;  /* Faz a tabela flutuar sobre o mapa */
+    top: 35px; left: 55px; right: 40px; bottom: 45px; /* Ajuste da posição conforme necessário */
+    background: rgba(255, 255, 255, 0.95); 
+    padding: 15px;
+    overflow: auto;  /* Adiciona rolagem se necessário */
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3); /* Adiciona sombra à tabela */
+    z-index: 10; /* Garante que a tabela fique acima do mapa */
+    display: none; /* Inicialmente oculta */
+}
+
+/* Botão de fechar */
+#fechar_tabela_mapa_fund {
+    position: absolute;
+    top: 5px; right: 5px;  /* Botão no canto superior direito da tabela */
+    cursor: pointer;
+    font-size: 18px;
+    background: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    z-index: 11; /* Garante que o botão fique sobre a tabela */
+}
+
+/* Ajuste para a tabela no seu conteúdo (se necessário) */
+#tabela_mapa_fund {
+    width: 100%;  /* Garantir que a tabela ocupe toda a largura disponível */
+    max-height: 100%; /* Evita que ela ultrapasse os limites definidos pela div */
+}
