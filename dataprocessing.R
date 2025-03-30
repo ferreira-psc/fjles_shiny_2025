@@ -20,8 +20,13 @@ for (obj in names(data)) {
 }
 
 #Remoção da coluna de exemplo do codebook (desnecessária para a visualização)
-emp_codebook <- codebook_1 %>% select(-4)
-perfil_codebook <- codebook_2 %>% select(-4)
+emp_codebook <- codebook_1 %>% select(-4)%>% 
+  filter(!if_all(everything(), is.na)) %>%
+  fill(1, .direction = "down")
+
+perfil_codebook <- codebook_2 %>% select(-4) %>% 
+  filter(!if_all(everything(), is.na)) %>%
+  fill(1, .direction = "down")
 
 # Remoção de colunas desnecessárias
 emp_banco <- acoes  %>%
@@ -108,7 +113,9 @@ for (obj in names(data)) {
 }
 
 #Remoção da coluna de exemplo do codebook (desnecessária para a visualização)
-fund_codebook <- codebook %>% select(-4)
+fund_codebook <- codebook %>% select(-4) %>% 
+  filter(!if_all(everything(), is.na)) %>%
+  fill(1, .direction = "down")
 
 # Remoção de colunas desnecessárias
 fund_banco <- banco_completo %>%
@@ -130,10 +137,8 @@ fund_mapa <- fund_binario%>%
                                   "Amazonas" = "Amazônas",
                                   "Rio Grade do Sul" = "Rio Grande do Sul"))
 
-
 #### CRUZAMENTOS ####
 
-#Importação dos dados de cruzamentos
 data <-import_list(here("data/dados_cruzamentos.xlsx"))
 
 for (obj in names(data)) {
@@ -141,26 +146,36 @@ for (obj in names(data)) {
   assign(cleaned_name, data[[obj]])
 }
 
-labels_gru <- c("gru_agri_fam" = "Ação envolveu agricultores familiares",
-            "gru_dem_esp" = "Ação envolveu grupos demográficos específicos",
-            "gru_vul_eco" = "Ação envolveu grupos vulneráveis",
-            "gru_cri_ado" = "Ação envolveu grupos crianças e adolescentes")
+elo_atua_x_investe_por_empresa <- elo_atua_x_investe_por_empresa %>% 
+  mutate(investimento = ifelse(total_acoes > 0, 1, 0)) 
 
-setor_grupos <- setor_grupos %>%
+labels_gru <- c("gru_agri_fam" = "Agricultores familiares",
+            "gru_dem_esp" = "Grupos demográficos específicos (ex: mulheres, quilombolas, indígenas, etc.)",
+            "gru_vul_eco" = "Grupos em situação de vulnerabilidade econômica",
+            "gru_cri_ado" = "Crianças e adolescentes")
+
+setor_x_grupos_p_por_setor <- setor_x_grupos_p_por_setor %>%
   group_by(set_ativ) %>%
   mutate(total_setor = sum(n)) %>%
   ungroup()%>% 
+  mutate(p_total = total_setor / sum(n)) %>% 
   mutate(name = recode(name, !!!labels_gru)) 
 
 labels_esg <- c("social" = "Benefício Social",
                 "ambiental" = "Benefício Ambiental",
                 "governanca" = "Benefício de Governança da Empresa")
 
-setor_esg <- setor_esg %>%
+setor_x_esg <- setor_x_esg %>%
   group_by(set_ativ) %>%
   mutate(total_setor = sum(n)) %>%
-  ungroup()%>% 
-  mutate(name = recode(name, !!!labels_esg)) 
+  ungroup() %>%
+  mutate(p_total = total_setor / sum(n)) %>% 
+  mutate(name = recode(name, !!!labels_esg))
+
+certificados_x_setor$razao = certificados_x_setor$n_cert / certificados_x_setor$n_setor
+
+certificados_x_setor<- certificados_x_setor %>%
+  mutate(set_ativ = fct_reorder(set_ativ, -razao, .fun = sum))
 
 #### DADOS + GEOMETRIA ####
 
@@ -231,10 +246,10 @@ write_xlsx(list(fund_binario = fund_binario,
                 perfil_binario = perfil_binario,
                 perfil_codebook = perfil_codebook,
                 perfil_banco = perfil_banco, 
-                cru_stack1 = setor_esg,
-                cru_stack2 = setor_grupos,
-                cru_stack3 = certificados_setor,
-                cru_sankey = elo_atua_investe),
+                cru_stack1 = setor_x_esg,
+                cru_stack2 = setor_x_grupos_p_por_setor,
+                cru_bar = certificados_x_setor,
+                cru_sankey = elo_atua_x_investe_por_empresa),
            "data/dados_tratados.xlsx")
 
 # Converter geometria para WKT para cada dataframe

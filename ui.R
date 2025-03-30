@@ -16,9 +16,9 @@ ui <- dashboardPage(
                               menuSubItem("Ações", tabName = "acoes_fundacoes")
                      ),
                      menuItem("Empresas", tabName = "empresas",
-                              menuSubItem("Perfil das Empresas", tabName = "perfil_empresas"),
+                              menuSubItem("Perfil das empresas", tabName = "perfil_empresas"),
                               menuSubItem("Ações", tabName = "acoes_empresas"),
-                              menuSubItem("Cruzamentos Específicos", tabName = "cruzamentos_empresas")
+                              menuSubItem("Outras informações relevantes", tabName = "cruzamentos_empresas")
                      )
                    )
   ),
@@ -37,16 +37,22 @@ ui <- dashboardPage(
                   div(id = "tabela_execucoes_mapa_fund",
                       actionButton("fechar_tabela_mapa_fund", "X", class = "btn-danger"),
                       DTOutput("tabela_mapa_fund") 
-                  )
+                  ), em("*Foi considerada como presente na região qualquer ação realizada em pelo menos um estado daquela área.
+                  Além disso, cada iniciativa poderia ter sido implementada em um ou mais estados e regiões,
+                  o que explica a discrepância entre a soma das ações por região e o total de 387 ações analisadas.
+                        Dentre as quais, 85 delas não possuem informações de onde foram realizadas.")
                 )),
               fluidRow(
-                box(width = 12, 
+                box(width = 6, 
                            selectInput("grafico_fund", "Ações de Fundações por", 
                                        choices = c("Tipo", "Mecanismo", "Objetivo",  #ESCOLHA DO GRÁFICO PELO INPUT DO USUÁRIO
-                                                   "ODS", "Elo da Cadeia do Alimento", "Ano de Financiamento")
+                                                   "ODS", "Elo da cadeia do alimento", "Ano de financiamento")
                            )
-              ),
-              box(width = 12,
+                    ),
+                  valueBoxOutput("total_fund", width = 6)
+                  ),
+              fluidRow(
+                box(width = 12,
                   uiOutput("dynamic_plot_fund") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT (GRÁFICOS DE BARRAS)
               )
               ),
@@ -77,14 +83,14 @@ ui <- dashboardPage(
               )
       ),
       tabItem(tabName = "perfil_empresas", #PÁGINA 2 - PERFIL DAS EMPRESAS
-              fluidRow(box(width = 12, 
+              fluidRow(box(width = 6, 
                            selectInput("grafico_perfil", "Empresas", #ESCOLHA DO GRÁFICO PELO INPUT DO USUÁRIO
-                                       choices = c("Por Setor", 
-                                                   "Que possuem fundações, por Setor",
-                                                   "Por Atuação nos Elos da Cadeia", 
-                                                   "Por Priorização da Segurança Alimentar por Ano")
+                                       choices = c("Por setor", 
+                                                   "Que possuem fundações, por setor",
+                                                   "Por atuação nos elos da cadeia do alimento", 
+                                                   "Por priorização da segurança alimentar por ano")
                            )
-              )
+              ), valueBoxOutput("total_perfil", width = 6)
               ),
               fluidRow(
                 box(width = 12,
@@ -125,18 +131,23 @@ ui <- dashboardPage(
                   div(id = "tabela_execucoes_mapa_emp",
                       actionButton("fechar_tabela_mapa_emp", "X", class = "btn-danger"),
                       DTOutput("tabela_mapa_emp") # Tabela de ações por estado
-                  )
+                  ), em("*Foi considerada como presente na região qualquer ação realizada em pelo menos um estado daquela área.
+                  Além disso, cada iniciativa poderia ter sido implementada em um ou mais estados e regiões,
+                  o que explica a discrepância entre a soma das ações por região e o total de 696 ações analisadas.
+                        Dentre as quais, 262 não possuem informações de onde foram realizadas.")
                 )),
               fluidRow(
-                box(width = 12, 
+                box(width = 6, 
                            selectInput("grafico_emp", "Ações de Empresas por", 
                                        choices = c("Tipo", "Mecanismo", "Objetivo",  #ESCOLHA DO GRÁFICO PELO INPUT DO USUÁRIO
-                                                   "ODS", "Elo da Cadeia do Alimento", "ESG",
-                                                   "Partes Interessadas", "Ano de Financiamento", "Grupos Marginalizados")
+                                                   "ODS", "Elo da cadeia do alimento", "ESG",
+                                                   "Partes interessadas", "Ano de financiamento", "Grupos em maior risco de insegurança alimentar e nutricional")
                            )
+              ), valueBoxOutput("total_emp", width = 6)
               ),
+              fluidRow(
                 box(width = 12,
-                  uiOutput("dynamic_plot_emp") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT (GRÁFICOS DE BARRAS)
+                    uiOutput("dynamic_plot_emp") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT (GRÁFICOS DE BARRAS)
               )
               ),
               fluidRow(
@@ -167,23 +178,18 @@ ui <- dashboardPage(
               ),
       tabItem(tabName = "cruzamentos_empresas", #PÁGINA 4 - CRUZAMENTOS ESPECÍFICOS 
               fluidRow(
-                box(
-                  width = 12, 
-                  plotlyOutput("cru_1")
+                box(width = 12, 
+                    selectInput("grafico_cru", "Escolha o gráfico:", 
+                                choices = c("Atuação e investimento nos elos da cadeia do alimento",
+                                            "Ações por setor e ESG",
+                                            "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional",  #ESCOLHA DO GRÁFICO PELO INPUT DO USUÁRIO
+                                            "Média de certificações por empresa e por setor")
+                    )
                 ),
-                box(
-                  width = 12, 
-                  plotlyOutput("cru_2")
-                ),
-                box(
-                  width = 12, 
-                  plotlyOutput("cru_3")
-                ),
-                box(
-                  width = 12, 
-                  plotlyOutput("cru_4")
+                box(width = 12,
+                    uiOutput("dynamic_plot_cru") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT (GRÁFICOS DE BARRAS)
                 )
-                ))
+              ))
       )
     )
 )

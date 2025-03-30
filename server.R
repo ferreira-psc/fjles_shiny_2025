@@ -3,37 +3,38 @@ server <- function(input, output, session) {
 
 #### FUNÇÕES ####
   
- # Função para criar os gráficos de barras
-  create_plotly <- function(data_obj, variable, title, colors) {
+  create_plotly <- function(data_obj, x_var, y_var, title, colors) {
     
     # Criando ggplot
-      plot_obj <- ggplot(data_obj, aes(x = .data[[variable]], y = acoes, fill = .data[[variable]])) +
-        geom_bar(stat = "identity") +
-        geom_text(aes(y = acoes + (max(acoes) * 0.05), label = paste0(acoes, "\n", round(relativo, 1), "%")), 
-                  vjust = -1.2, size = 3) +
-        scale_fill_manual(values = colors) +
-        labs(title = title, x = NULL, y = NULL) +
-        theme_minimal() +
-        theme(axis.text.x = element_blank(),
-              legend.text = element_text(size = 10),
-              panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank()) +
-        guides(fill = guide_legend(title = NULL))
+    plot_obj <- ggplot(data_obj, aes(x = .data[[x_var]], y = .data[[y_var]], fill = .data[[x_var]])) +
+      geom_bar(stat = "identity") +
+      geom_text(aes(y = .data[[y_var]] + (max(.data[[y_var]], na.rm = TRUE) * 0.05), 
+                    label = paste0(.data[[y_var]], "\n", round(.data[[y_var]] / sum(.data[[y_var]]) * 100, 1), "%")), 
+                vjust = -1.2, size = 3) +
+      scale_fill_manual(values = colors) +
+      labs(title = title, x = NULL, y = NULL) +
+      theme_minimal() +
+      theme(axis.text.x = element_blank(),
+            legend.text = element_text(size = 10),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank()) +
+      guides(fill = guide_legend(title = NULL))
     
     # Convertendo para plotly e definindo configurações de exibição
-      plotly_obj <- ggplotly(plot_obj, tooltip = NULL) %>%
-        style(hoverinfo = "none") %>%
-        config(
-          modeBarButtonsToRemove = c("zoom2d", "zoomIn2d", "zoomOut2d", "autoScale2d",
-                                     "pan2d", "select2d", "lasso2d", "resetScale2d",
-                                     "hoverClosestCartesian", "hoverCompareCartesian", 
-                                     "toggleSpikelines"),
-          displaylogo = FALSE 
-        )
+    plotly_obj <- ggplotly(plot_obj, tooltip = NULL) %>%
+      style(hoverinfo = "none") %>%
+      config(
+        modeBarButtonsToRemove = c("zoom2d", "zoomIn2d", "zoomOut2d", "autoScale2d",
+                                   "pan2d", "select2d", "lasso2d", "resetScale2d",
+                                   "hoverClosestCartesian", "hoverCompareCartesian", 
+                                   "toggleSpikelines"),
+        displaylogo = FALSE 
+      )
     
     # Executando plotly
-      return(plotly_obj)
+    return(plotly_obj)
   }
+  
   
   # Função para criar os labels usados nos mapas
     labels_group <- function(dados, nome_col, contagem_col) {
@@ -250,6 +251,30 @@ server <- function(input, output, session) {
               .
             )))
           
+          datatable(data_mod,filter = "top",
+                    rownames = FALSE,
+                    escape = FALSE,
+                    options = list(
+                      scrollY = "300px",
+                      scrollX = TRUE,
+                      paging = FALSE
+                    ))
+        })
+      }
+      
+      # Função para renderizar uma tabela DT com truncamento de células
+      render_table_codebook <- function(id, data) {
+        output[[paste0("table_", id)]] <- renderDT({
+          data_mod <- data %>%
+            mutate(across(everything(), ~ ifelse(
+              nchar(.) > 50,
+              paste0(
+                "<div class='truncate-cell'>", ., "</div>",
+                "<span class='expand-button' onclick='toggleExpand(this)'>[+]</span>"
+              ),
+              .
+            )))
+          
           datatable(data_mod,
                     rownames = FALSE,
                     escape = FALSE,
@@ -257,7 +282,33 @@ server <- function(input, output, session) {
                       scrollY = "300px",
                       scrollX = TRUE,
                       paging = FALSE,
-                      dom = 't'
+                      dom = 't',
+                      rowCallback = JS(
+                        "function(row, data, index) {
+      var api = this.api();
+      var cell = $('td:eq(0)', row); // Encontra a primeira coluna
+
+      if (index > 0) {
+        var prevCell = null;
+
+        // Encontra a primeira ocorrência válida da categoria
+        for (var i = index - 1; i >= 0; i--) {
+          var tempCell = $('td:eq(0)', api.row(i).node());
+          if (tempCell.length > 0 && tempCell.text() === cell.text()) {
+            prevCell = tempCell;
+            break;
+          }
+        }
+
+        // Se encontrou uma célula válida, aumenta o rowspan e remove a duplicata
+        if (prevCell !== null) {
+          var rowspan = prevCell.attr('rowspan') || 1;
+          prevCell.attr('rowspan', parseInt(rowspan) + 1);
+          cell.remove(); // Remove a célula duplicada
+        }
+      }
+    }"
+                      )
                     ))
         })
       }
@@ -294,15 +345,22 @@ server <- function(input, output, session) {
       }
 
       # Função para criar gráficos de barras empilhadas
-      grafico_stack <- function(data, x1_var, y_var, fill_var, percent_var, title, total_var, colors) {
+      grafico_stack <- function(data, x1_var, y_var, fill_var, percent_var, title, total_var, p_var, colors) {
+        
+        # Ordenando as colunas de forma decrescente com base na soma de y_var
+        data[[x1_var]] <- factor(data[[x1_var]], levels = data %>%
+                                   group_by_at(x1_var) %>%
+                                   summarise(sum_y = sum(!!sym(y_var), na.rm = TRUE)) %>%
+                                   arrange(-sum_y) %>%
+                                   pull(!!sym(x1_var)))
         
         # Criando o gráfico com ggplot
         plot <- ggplot(data, aes_string(x = x1_var, y = y_var, fill = fill_var)) +
           geom_bar(stat = "identity", position = "stack") +
           geom_text(aes(label = scales::percent(!!sym(percent_var), accuracy = 1)), 
-                    position = position_stack(vjust = 0.5), size = 3) +  # Removendo casas decimais
+                    position = position_stack(vjust = 0.5), size = 3) +  
           geom_text(aes(y = !!sym(total_var) + (max(.data[[total_var]], na.rm = TRUE) * 0.08), 
-                        label = !!sym(total_var)), 
+                        label = paste0(!!sym(total_var), " (", scales::percent(!!sym(p_var), accuracy = 1), ")")),
                     vjust = -1.2, size = 3.5) +
           scale_fill_manual(values = colors) +
           labs(title = title) +  
@@ -329,7 +387,7 @@ server <- function(input, output, session) {
         
         return(plotly)
       }
-
+      
       
 #### RENDERIZAÇÃO ####
       
@@ -364,7 +422,7 @@ server <- function(input, output, session) {
       create_toggle_button("fund_code", session)
     
     # Criando codebook de Ações de Fundações
-      render_custom_table("fund_code", fund_codebook)
+      render_table_codebook("fund_code", fund_codebook)
       
     # Criando botão de download do codebook de Ações de Fundações
       create_xlsx_download("fund_code", fund_codebook, "fund_codebook.xlsx")
@@ -380,7 +438,7 @@ server <- function(input, output, session) {
     create_toggle_button("perfil_code", session)
     
     # Criando codebook de Perfil de Empresas
-    render_custom_table("perfil_code", perfil_codebook)
+    render_table_codebook("perfil_code", perfil_codebook)
     
     # Criando botões de download do codebook de Perfil de Empresas 
     create_xlsx_download("perfil_code", perfil_codebook, "perfil_codebook.xlsx")
@@ -396,7 +454,7 @@ server <- function(input, output, session) {
     create_toggle_button("emp_code", session)
     
     # Criando codebook de Ações de Empresas
-    render_custom_table("emp_code", emp_codebook)
+    render_table_codebook("emp_code", emp_codebook)
     
     # Criando botões de download do codebook de Ações de Empresas 
     create_xlsx_download("emp_code", emp_codebook, "emp_codebook.xlsx")
@@ -412,7 +470,7 @@ server <- function(input, output, session) {
       data_fund_1$tipo <- factor(data_fund_1$tipo, 
                                  levels = data_fund_1$tipo[order(data_fund_1$acoes, decreasing = TRUE)])
       
-      create_plotly(data_fund_1, "tipo", "Ações de Fundações por Tipo", cores_fjles)
+      create_plotly(data_fund_1, "tipo", "acoes",  "Ações por tipo", cores_fjles)
       
     })
     
@@ -427,7 +485,7 @@ server <- function(input, output, session) {
       data_fund_2$mecanismo <- factor(data_fund_2$mecanismo, 
                                       levels = data_fund_2$mecanismo[order(data_fund_2$acoes, decreasing = TRUE)])
       
-      create_plotly(data_fund_2, "mecanismo", "Ações de Fundações por Mecanismo", cores_fjles_expandida)
+      create_plotly(data_fund_2, "mecanismo", "acoes","Ações por Mecanismo", cores_fjles_expandida)
       
     })
     
@@ -446,7 +504,7 @@ server <- function(input, output, session) {
           objetivos = fct_reorder(objetivos, acoes, .desc = TRUE)
         )
       
-      create_plotly(data_fund_3, "objetivos", "Ações de Fundações por Objetivo", cores_fjles_expandida)
+      create_plotly(data_fund_3, "objetivos", "acoes", "Ações por objetivo", cores_fjles_expandida)
       
     })
     
@@ -473,7 +531,7 @@ server <- function(input, output, session) {
         mutate(ods = recode(ods, !!!labels)) %>%
         mutate(ods = fct_reorder(ods, -acoes, .fun = sum)) 
       
-      create_plotly(data_fund_4, "ods", "Ações de Fundações por ODS", cores_fjles_expandida)
+      create_plotly(data_fund_4, "ods","acoes", "Ações por ODS", cores_fjles_expandida)
       
     })
     
@@ -497,7 +555,7 @@ server <- function(input, output, session) {
         mutate(elo = recode(elo, !!!labels)) %>%
         mutate(elo = fct_reorder(elo, -acoes, .fun = sum)) 
       
-      create_plotly(data_fund_5, "elo", "Ações de Fundações por Elo da Cadeia do Alimento", cores_fjles_expandida)
+      create_plotly(data_fund_5, "elo","acoes", "Ações por elo da cadeia do alimento", cores_fjles_expandida)
       
     })
     
@@ -518,7 +576,7 @@ server <- function(input, output, session) {
         mutate(ano = recode(ano, !!!labels)) %>%
         mutate(ano = fct_reorder(ano, -acoes, .fun = sum)) 
       
-      create_plotly(data_fund_6, "ano", "Ações de Fundações por Ano de Financiamento", cores_fjles)
+      create_plotly(data_fund_6, "ano","acoes", "Ações por Ano de financiamento", cores_fjles)
       
     })
     
@@ -532,7 +590,7 @@ server <- function(input, output, session) {
       data_perfil_1$set_ativ <- factor(data_perfil_1$set_ativ, 
                                  levels = data_perfil_1$set_ativ[order(data_perfil_1$acoes, decreasing = TRUE)])
       
-      create_plotly(data_perfil_1, "set_ativ", "Empresas por Setor", cores_fjles)
+      create_plotly(data_perfil_1, "set_ativ","acoes", "Empresas por setor", cores_fjles)
       
     })
     
@@ -547,7 +605,7 @@ server <- function(input, output, session) {
       data_perfil_2$set_ativ <- factor(data_perfil_2$set_ativ, 
                                       levels = data_perfil_2$set_ativ[order(data_perfil_2$acoes, decreasing = TRUE)])
       
-      create_plotly(data_perfil_2, "set_ativ", "Empresas, que possuem Fundações, por Setor", cores_fjles)
+      create_plotly(data_perfil_2, "set_ativ","acoes", "Empresas, que possuem fundações, por setor", cores_fjles)
       
     })
     
@@ -572,7 +630,7 @@ server <- function(input, output, session) {
           elo = fct_reorder(elo, -acoes)
         )
       
-      create_plotly(data_perfil_3, "elo", "Empresas por Atuação nos Elos da Cadeia", cores_fjles_expandida)
+      create_plotly(data_perfil_3, "elo","acoes", "Empresas por atuação nos elos da cadeia", cores_fjles_expandida)
       
     })
     
@@ -595,7 +653,7 @@ server <- function(input, output, session) {
           ano = fct_reorder(ano, -acoes)
         )
       
-      create_plotly(data_perfil_4, "ano", "Empresas por Priorização da Segurança Alimentar por Ano", cores_fjles_expandida)
+      create_plotly(data_perfil_4, "ano","acoes", "Empresas por priorização da segurança alimentar por ano", cores_fjles_expandida)
       
     })
 
@@ -611,7 +669,7 @@ server <- function(input, output, session) {
                                  levels =  data_emp_1$tipo[order(data_emp_1$acoes,
                                                                  decreasing = TRUE)])
         
-        create_plotly(data_emp_1, "tipo", "Ações de Empresas por Tipo", cores_fjles)
+        create_plotly(data_emp_1, "tipo","acoes", "Ações por tipo", cores_fjles)
         
       })
     
@@ -627,7 +685,7 @@ server <- function(input, output, session) {
                                                       levels = data_emp_2$mecanismo[order(data_emp_2$acoes,
                                                                                           decreasing = TRUE)])
         
-        create_plotly(data_emp_2, "mecanismo", "Ações de Empresas por Mecanismo", cores_fjles_expandida)
+        create_plotly(data_emp_2, "mecanismo","acoes", "Ações por mecanismo", cores_fjles_expandida)
         
       })
     
@@ -635,15 +693,15 @@ server <- function(input, output, session) {
     output$emp_3 <- renderPlotly({
       
       labels<- c(
-        "obj_prod_ali" = "Produção de Alimentos",
-        "obj_seg_nutri" = "Segurança Nutricional",
-        "obj_ali_fome" = "Alívio da Fome",
-        "obj_red_perda" = "Redução de Perdas",
+        "obj_prod_ali" = "Produção de alimentos",
+        "obj_seg_nutri" = "Segurança nutricional",
+        "obj_ali_fome" = "Alívio da fome",
+        "obj_red_perda" = "Redução de perdas",
         "obj_reap" = "Reaproveitamento",
         "obj_ace_agua" = "Acesso à água",
-        "obj_res_emp" = "Melhores Práticas de Responsabilidade Empresariais",
-        "obj_agri_fam" = "Fortalecimento da Agricultura Familiar",
-        "obj_red_desp" = "Redução de Desperdícios"
+        "obj_res_emp" = "Melhores práticas de responsabilidade empresariais",
+        "obj_agri_fam" = "Fortalecimento da agricultura familiar",
+        "obj_red_desp" = "Redução de desperdícios"
       )
       
       data_emp_3 <- emp_binario %>%
@@ -655,7 +713,7 @@ server <- function(input, output, session) {
         mutate(objetivo = recode(objetivo, !!!labels)) %>%
         mutate(objetivo = fct_reorder(objetivo, -acoes, .fun = sum)) 
       
-      create_plotly(data_emp_3, "objetivo", "Ações de Empresas por Objetivo", cores_fjles_expandida) 
+      create_plotly(data_emp_3, "objetivo","acoes", "Ações por objetivo", cores_fjles_expandida) 
       
     })
     
@@ -684,7 +742,7 @@ server <- function(input, output, session) {
           mutate(ods = recode(ods, !!!labels)) %>%
           mutate(ods = fct_reorder(ods, -acoes, .fun = sum)) 
         
-        create_plotly(data_emp_4, "ods", "Ações de Empresas por ODS", cores_fjles_expandida) 
+        create_plotly(data_emp_4, "ods", "acoes", "Ações por ODS", cores_fjles_expandida) 
         
       })
       
@@ -707,16 +765,16 @@ server <- function(input, output, session) {
           mutate(elo = recode(elo, !!!labels)) %>%
           mutate(elo = fct_reorder(elo, -acoes, .fun = sum)) 
         
-        create_plotly(data_emp_5, "elo", "Ações de Empresas por Elo da Cadeia do Alimento", cores_fjles_expandida)
+        create_plotly(data_emp_5, "elo","acoes", "Ações por elo da cadeia do alimento", cores_fjles_expandida)
         
       })
       
     # Criando gráfico de barras - Ações de Empresas por ESG
       output$emp_6 <- renderPlotly({
         
-        labels <- c("social" = "Benefício Social",
-                    "ambiental" = "Benefício Ambiental",
-                    "governanca" = "Benefício de Governança da Empresa")
+        labels <- c("social" = "Benefício social",
+                    "ambiental" = "Benefício ambiental",
+                    "governanca" = "Benefício de governança da empresa")
         
         data_emp_6 <- emp_binario %>%
           select(id_iniciativa, social, ambiental, governanca) %>%  
@@ -727,17 +785,17 @@ server <- function(input, output, session) {
           mutate(esg = recode(esg, !!!labels)) %>%
           mutate(esg = fct_reorder(esg, -acoes, .fun = sum)) 
         
-        create_plotly(data_emp_6, "esg", "Ações de Empresas por ESG", cores_fjles)
+        create_plotly(data_emp_6, "esg","acoes", "Ações por ESG", cores_fjles)
         
       })
       
       # Criando gráfico de barras - Ações de Empresas por Partes Interessadas
       output$emp_7 <- renderPlotly({
         
-        labels <- c("part_int_cli" = "Ação envolve clientes da empresa",
-                    "part_int_for" = "Ação envolve fornecedores",
-                    "part_int_com" = "Ação envolve comunidades locais",
-                    "part_int_func" = "Ação envolve funcionários da empresa")
+        labels <- c("part_int_cli" = "Clientes da empresa",
+                    "part_int_for" = "Fornecedores",
+                    "part_int_com" = "Comunidades locais",
+                    "part_int_func" = "Funcionários da empresa")
         
         data_emp_7 <- emp_binario %>%
           select(id_iniciativa, starts_with("part_")) %>% 
@@ -748,7 +806,7 @@ server <- function(input, output, session) {
           mutate(pti = recode(pti, !!!labels)) %>%
           mutate(pti = fct_reorder(pti, -acoes, .fun = sum)) 
         
-        create_plotly(data_emp_7, "pti", "Ações de Empresas por Partes Interessadas", cores_fjles)
+        create_plotly(data_emp_7, "pti","acoes", "Ações de empresas por partes interessadas", cores_fjles)
       })
 
       # Criando gráfico de barras - Ações de Empresa por Ano de Financiamento 
@@ -771,17 +829,17 @@ server <- function(input, output, session) {
               ano = fct_reorder(ano, -acoes)
             )
           
-          create_plotly(data_emp_8, "ano", "Ações de Empresas por Ano de Financiamento", cores_fjles)
+          create_plotly(data_emp_8, "ano","acoes", "Ações por ano de financiamento", cores_fjles)
           
         })
         
       # Criando gráfico de barras - Ações de Empresa por Grupos Marginalizados
         output$emp_9 <- renderPlotly({
           
-          labels <- c("gru_agri_fam" = "Ação envolveu agricultores familiares",
-                      "gru_dem_esp" = "Ação envolveu grupos demográficos específicos",
-                      "gru_vul_eco" = "Ação envolveu grupos vulneráveis",
-                      "gru_cri_ado" = "Ação envolveu grupos crianças e adolescentes")
+          labels <- c("gru_agri_fam" = "Agricultores familiares",
+                      "gru_dem_esp" = "Grupos demográficos específicos (ex: mulheres, quilombolas, indígenas, etc.)",
+                      "gru_vul_eco" = "Grupos em situação de vulnerabilidade econômica",
+                      "gru_cri_ado" = "Crianças e adolescentes")
           
           data_emp_9 <- emp_binario %>%
             select(id_iniciativa, starts_with("gru_")) %>% 
@@ -792,8 +850,132 @@ server <- function(input, output, session) {
             mutate(gru = recode(gru, !!!labels)) %>%
             mutate(gru = fct_reorder(gru, -acoes, .fun = sum)) 
           
-          create_plotly(data_emp_9, "gru", "Ações de Empresas por Grupos Marginalizados", cores_fjles)
+          create_plotly(data_emp_9, "gru","acoes", "Ações por grupos em maior risco de insegurança alimentar e nutricional", cores_fjles)
           
+        })
+        
+        output$cru_1 <- renderPlotly({
+          
+          links <- cru_sankey %>%
+            filter(atuacao == 1 | investimento == 1) %>%
+            group_by(empresa) %>%
+            summarise(conexoes = list(expand.grid(
+              setor_atuacao = elo[atuacao == 1],
+              setor_investimento = elo[investimento == 1]
+            )), .groups = "drop") %>%
+            unnest(conexoes) %>%
+            count(setor_atuacao, setor_investimento, name = "value")
+          
+          heatmap_data <- links %>%
+            spread(key = setor_investimento, value = value, fill = 0)
+          
+          heatmap_matrix <- as.matrix(heatmap_data[,-1])  
+          
+          rownames(heatmap_matrix) <- heatmap_data$setor_atuacao
+          colnames(heatmap_matrix) <- colnames(heatmap_data)[-1]
+          
+          fig <- plot_ly(
+            z = heatmap_matrix, 
+            x = colnames(heatmap_matrix),  
+            y = rownames(heatmap_matrix),  
+            type = "heatmap",  
+            colors = "Reds",  
+            colorbar = list(title = "Contagem")  
+          )
+          
+          fig
+          
+        })
+        
+        output$cru_2 <- renderPlotly({
+          
+          grafico_stack(cru_stack1, "set_ativ", "n", "name", "p",
+                        "Ações por setor e ESG", "total_setor", "p_total", cores_fjles_claro)
+          
+        })
+        
+        output$cru_3 <- renderPlotly({
+          
+          grafico_stack(cru_stack2, "set_ativ", "n", "name", "p_setor",
+                        "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional",
+                        "total_setor", "p_total", cores_fjles_claro)
+          
+        })
+        
+        output$cru_4 <- renderPlotly({
+          
+          cru_bar<- cru_bar %>%
+            mutate(set_ativ = fct_reorder(set_ativ, -razao, .fun = sum))
+          
+          plot <- ggplot(cru_bar, aes(x = set_ativ, y = razao, fill = set_ativ)) +
+            geom_bar(stat = "identity") +
+            geom_text(aes(y = razao + (max(razao, na.rm = TRUE) * 0.08),  
+                          label = round(razao)),  
+                      vjust = -1.2, size = 3.5) +
+            geom_text(aes(label = scales::percent(p_cert, accuracy = 1)), 
+                      position = position_stack(vjust = 0.5), size = 3) +
+            labs(title = "Média de certificações por empresa e por setor") +
+            scale_fill_manual(values = cores_fjles) + 
+            theme_minimal()+
+            theme(
+              axis.title.x = element_blank(),
+              axis.title.y = element_blank(),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              legend.position = "none"
+            )
+          
+          plotly <- ggplotly(plot, tooltip = NULL) %>%
+            style(hoverinfo = "none") %>%
+            config(
+              modeBarButtonsToRemove = c("zoom2d", "zoomIn2d", "zoomOut2d", "autoScale2d",
+                                         "pan2d", "select2d", "lasso2d", "resetScale2d",
+                                         "hoverClosestCartesian", "hoverCompareCartesian", 
+                                         "toggleSpikelines"),
+              displaylogo = FALSE
+            )
+          
+          plotly
+          
+        })
+        
+        #Criando Box de informações - Total de ações de fundações
+        output$total_fund <- renderValueBox({
+          
+          total_fund <- nrow(fund_banco)
+          
+          valueBox(
+            value = total_fund,
+            subtitle = "Ações de Fundações",
+            icon = icon("list"),
+            color = "aqua"
+          )
+        })
+        
+        #Criando Box de informações - Total de empresas
+        output$total_perfil <- renderValueBox({
+          
+          total_perfil <- nrow(perfil_banco)
+          
+          valueBox(
+            value = total_perfil,
+            subtitle = "Empresas",
+            icon = icon("list"),
+            color = "aqua"
+          )
+        })
+
+        #Criando Box de informações - Total ações de empresas
+        output$total_emp <- renderValueBox({
+          
+          total_emp <- nrow(emp_banco)
+          
+          valueBox(
+            value = total_emp,
+            subtitle = "Ações de Empresas",
+            icon = icon("list"),
+            color = "aqua"
+          )
         })
           
     # Renderização dinâmica dos gráficos de Ações de Fundações
@@ -803,29 +985,40 @@ server <- function(input, output, session) {
       } else if (input$grafico_fund  == "Mecanismo") {
         plotlyOutput("fund_2")
       } else if (input$grafico_fund  == "Objetivo") {
-        plotlyOutput("fund_3")
+        tagList(plotlyOutput("fund_3"),
+                em("*Como cada ação poderia estar relacionada a mais de um objetivo,
+                 podendo visar a produção de alimentos e o acesso à água,
+                 por exemplo, a soma da quantidade de iniciativas por objetivo é superior ao total de 387 ações analisadas."))
       } else if (input$grafico_fund  == "ODS") {
-        plotlyOutput("fund_4")
-      } else if (input$grafico_fund  == "Elo da Cadeia do Alimento") {
-        plotlyOutput("fund_5")
-      } else if (input$grafico_fund  == "Ano de Financiamento") {
-        plotlyOutput("fund_6")
+        tagList(plotlyOutput("fund_4"),
+                em("*Como cada ação poderia estar relacionada a um ODS ou mais, a soma do número de ações considerando todos os indicadores ultrapassa o total de 387 ações analisadas."))
+      } else if (input$grafico_fund  == "Elo da cadeia do alimento") {
+        tagList(plotlyOutput("fund_5"),
+                em("*Cada ação poderia estar relacionada a nenhuma ou a mais de uma etapa da cadeia de alimentos. Assim, a soma da quantidade de ações por elo não corresponde ao total de 387 ações analisadas."))
+      } else if (input$grafico_fund  == "Ano de financiamento") {
+        tagList(plotlyOutput("fund_6"),
+                em("*Cada ação pode receber financiamento em um ou mais anos. Por isso, a soma dos totais de financiamento não corresponde ao total de 387 ações analisadas."))
       } 
     })
     
-    # Renderização dinâmica dos gráficos de Ações de Fundações
+    # Renderização dinâmica dos gráficos de Ações de Perfil de Empresas
     output$dynamic_plot_perfil <- renderUI({
-      if (input$grafico_perfil == "Por Setor") {
+      if (input$grafico_perfil == "Por setor") {
         plotlyOutput("perfil_1")
-      } else if (input$grafico_perfil  == "Que possuem fundações, por Setor") {
-        plotlyOutput("perfil_2")
-      } else if (input$grafico_perfil  == "Por Atuação nos Elos da Cadeia") {
-        plotlyOutput("perfil_3")
-      } else if (input$grafico_perfil  == "Por Priorização da Segurança Alimentar por Ano") {
-        plotlyOutput("perfil_4")
+      } else if (input$grafico_perfil  == "Que possuem fundações, por setor") {
+        tagList(plotlyOutput("perfil_2"),
+                em("*Os valores do gráfico foram calculados em relação ao total de 36 empresas que possuem fundações ou institutos.
+                   O número de fundações ou institutos é inferior ao total de empresas categorizadas como “possui instituto/fundação”, uma vez que as empresas Castolanda, Frísia e Capal possuem a mesma fundação (Fundação ABC).
+                   Assim, o número total de fundações/institutos é de 34."))
+      } else if (input$grafico_perfil  == "Por atuação nos elos da cadeia do alimento") {
+        tagList(plotlyOutput("perfil_3"),
+                em("*A soma do número de empresas atuantes em cada elo da cadeia do alimento ultrapassa o total de 98 empresas analisadas, uma vez que cada empresa poderia atuar em ao menos um elo e no máximo em todos."))
+      } else if (input$grafico_perfil  == "Por priorização da segurança alimentar por ano") {
+        tagList(plotlyOutput("perfil_4"),
+                em("*Cada empresa pode priorizar a segurança alimentar em um ou mais anos. Por isso, a soma dos totais de priorizações não corresponde ao total de 98 empresas analisadas."))
       }
     })
-  
+    
   # Renderização dinâmica dos gráficos de Ações de Empresa
     output$dynamic_plot_emp <- renderUI({
       if (input$grafico_emp == "Tipo") {
@@ -833,33 +1026,63 @@ server <- function(input, output, session) {
       } else if (input$grafico_emp == "Mecanismo") {
         plotlyOutput("emp_2")
       } else if (input$grafico_emp == "Objetivo") {
-        plotlyOutput("emp_3")
+        tagList(plotlyOutput("emp_3"),
+                em("*Como cada ação poderia estar relacionada a mais de um objetivo,
+                 podendo visar a produção de alimentos e o acesso à água,
+                 por exemplo, a soma da quantidade de iniciativas por objetivo é superior ao total de 696 ações analisadas."))
       } else if (input$grafico_emp == "ODS") {
-        plotlyOutput("emp_4")
-      } else if (input$grafico_emp == "Elo da Cadeia do Alimento") {
-        plotlyOutput("emp_5")
+        tagList(plotlyOutput("emp_4"),
+                em("*Como cada ação poderia estar relacionada a um ODS ou mais, a soma do número de ações considerando todos os indicadores ultrapassa o total de 696 ações analisadas."))
+      } else if (input$grafico_emp == "Elo da cadeia do alimento") {
+        tagList(plotlyOutput("emp_5"),
+                em("*Cada ação poderia estar relacionada a nenhuma ou a mais de uma etapa da cadeia de alimentos. Assim, a soma da quantidade de ações por elo não corresponde ao total de 696 ações analisadas."))
       } else if (input$grafico_emp == "ESG") {
-        plotlyOutput("emp_6")
-      } else if (input$grafico_emp == "Partes Interessadas") {
-        plotlyOutput("emp_7")
-      } else if (input$grafico_emp == "Ano de Financiamento") {
-        plotlyOutput("emp_8")
-      } else if (input$grafico_emp == "Grupos Marginalizados") {
-        plotlyOutput("emp_9")
+        tagList(plotlyOutput("emp_6"),
+                em("*Cada iniciativa de SSAN analisada poderia gerar nenhum ou mais de um benefício ESG, ou seja, uma mesma ação poderia gerar um benefício social e ambiental ao mesmo tempo, por exemplo. Por isso, a soma dos totais de cada elo ESG não corresponde ao total de 696 ações analisadas."))
+      } else if (input$grafico_emp == "Partes interessadas") {
+        tagList(plotlyOutput("emp_7"),
+                em("*Cada ação poderia envolver, ter como público-alvo ou impactar mais de uma parte interessada ou nenhuma delas. Portanto, a somatória do total de ações para cada variável difere do total de 696 ações analisadas."))
+      } else if (input$grafico_emp == "Ano de financiamento") {
+        tagList(plotlyOutput("emp_8"),
+                em("*Cada ação pode receber financiamento em um ou mais anos. Por isso, a soma dos totais de financiamento não corresponde ao total de 696 ações analisadas."))
+      } else if (input$grafico_emp == "Grupos em maior risco de insegurança alimentar e nutricional") {
+        tagList(plotlyOutput("emp_9"),
+                em("*Cada ação poderia envolver, ter como público-alvo ou impactar mais de um grupo ou nenhum deles."))
       }
     })
     
-    output$cru_2 <- renderPlotly({
-
-      grafico_stack(cru_stack1, "set_ativ", "n", "name", "p",
-                    "Ações de Empresas por Setor e ESG", "total_setor", cores_fjles)
-        
-    })
-    
-    output$cru_3 <- renderPlotly({
-      
-      grafico_stack(cru_stack2, "set_ativ", "n", "name", "p_setor",
-                    "Ações de Empresas por Setor e Grupos Marginalizados","total_setor", cores_fjles)
-      
+    # Renderização dinâmica dos gráficos de Cruzamemtos
+    output$dynamic_plot_cru <- renderUI({
+      if (input$grafico_cru == "Atuação e investimento nos elos da cadeia do alimento") {
+        plotlyOutput("cru_1")
+      } else if (input$grafico_cru == "Ações por setor e ESG") {
+        tagList(plotlyOutput("cru_2"),
+                em("*Cada ação analisada poderia estar relacionada a mais de um tripé do ESG ou a nenhum.
+                   O “n” total foi calculado a partir da soma de todas as ações que tinham benefícios ESG e foram financiadas ou apoiadas por empresas do respectivo setor,
+                   e as proporções consideraram esse “n” em relação à quantidade de empresas analisadas por setor.
+                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
+                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
+                   e 27 do comercio varejista. Já as proporções dentro das barras, consideraram o número total de ações por benefício ESG dentro de cada setor.
+                   Assim, é possível analisar tanto qual setor investe mais, proporcionalmente e em números absolutos,
+                   quanto qual o benefício ESG priorizado dentro de cada setor."))
+      } else if (input$grafico_cru ==  "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional") {
+        tagList(plotlyOutput("cru_3"),
+                em("*Cada ação analisada poderia estar relacionada a mais de um grupo ou a nenhum.
+                   O “n” total foi calculado a partir da soma de todas as ações relacionadas aos grupos que foram financiadas ou apoiadas por empresas do respectivo setor,
+                   e as proporções consideraram esse “n” em relação à quantidade de empresas analisadas por setor.
+                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
+                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
+                   e 27 do comercio varejista. Já as proporções dentro das barras, consideraram o número total de ações por grupo envolvido dentro de cada setor.
+                   Assim, é possível analisar tanto qual setor investe mais, proporcionalmente e em números absolutos,
+                   quanto qual o grupo priorizado dentro de cada setor."))
+      } else if (input$grafico_cru == "Média de certificações por empresa e por setor") {
+        tagList(plotlyOutput("cru_4"),
+                em("*Cada empresa analisada poderia ter mais de um certificado ou nenhum.
+                   O “n” foi calculado a partir da média aproximada de certificados por setor empresarial,
+                   e a proporção considerou o número de certificados em relação ao número de empresas analisadas no setor.
+                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
+                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
+                   e 27 do comercio varejista.")) 
+        } 
     })
 }
