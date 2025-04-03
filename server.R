@@ -9,7 +9,7 @@ server <- function(input, output, session) {
     plot_obj <- ggplot(data_obj, aes(x = .data[[x_var]], y = .data[[y_var]], fill = .data[[x_var]])) +
       geom_bar(stat = "identity") +
       geom_text(aes(y = .data[[y_var]] + (max(.data[[y_var]], na.rm = TRUE) * 0.05), 
-                    label = paste0(.data[[y_var]], "\n", round(.data[[y_var]] / sum(.data[[y_var]]) * 100, 1), "%")), 
+                    label = paste0(.data[[y_var]], "\n", round(.data[[y_var]] / sum(.data[[y_var]]) * 100, 2), "%")), 
                 vjust = -1.2, size = 3) +
       scale_fill_manual(values = colors) +
       labs(title = title, x = NULL, y = NULL) +
@@ -354,13 +354,12 @@ server <- function(input, output, session) {
                                    arrange(-sum_y) %>%
                                    pull(!!sym(x1_var)))
         
-        # Criando o gráfico com ggplot
         plot <- ggplot(data, aes_string(x = x1_var, y = y_var, fill = fill_var)) +
           geom_bar(stat = "identity", position = "stack") +
-          geom_text(aes(label = scales::percent(!!sym(percent_var), accuracy = 1)), 
+          geom_text(aes(label = scales::percent(!!sym(percent_var), accuracy = 0.01)), 
                     position = position_stack(vjust = 0.5), size = 3) +  
           geom_text(aes(y = !!sym(total_var) + (max(.data[[total_var]], na.rm = TRUE) * 0.08), 
-                        label = paste0(!!sym(total_var), " (", scales::percent(!!sym(p_var), accuracy = 1), ")")),
+                        label = paste0(!!sym(total_var), " (", scales::percent(!!sym(p_var), accuracy = 0.01), ")")),
                     vjust = -1.2, size = 3.5) +
           scale_fill_manual(values = colors) +
           labs(title = title) +  
@@ -374,7 +373,6 @@ server <- function(input, output, session) {
           ) +
           guides(fill = guide_legend(title = NULL))
         
-        # Convertendo o gráfico ggplot para plotly
         plotly <- ggplotly(plot, tooltip = NULL) %>%
           style(hoverinfo = "none") %>%
           config(
@@ -656,6 +654,16 @@ server <- function(input, output, session) {
       create_plotly(data_perfil_4, "ano","acoes", "Empresas por priorização da segurança alimentar por ano", cores_fjles_expandida)
       
     })
+    
+    # Criando gráfico de barras - Empresas por Priorização da Segurança Alimentar por Ano
+    output$perfil_5 <- renderPlotly({
+      
+      data_perfil_5 <- cru_bar %>%
+        mutate(set_ativ = fct_reorder(set_ativ, -n_cert))
+      
+      create_plotly(data_perfil_5, "set_ativ","n_cert", "Certificações por setor", cores_fjles)
+      
+    })
 
   # Criando gráfico de barras - Ações de Empresas por Tipo
     output$emp_1 <- renderPlotly({
@@ -855,35 +863,45 @@ server <- function(input, output, session) {
         })
         
         output$cru_1 <- renderPlotly({
-          
-          links <- cru_sankey %>%
-            filter(atuacao == 1 | investimento == 1) %>%
-            group_by(empresa) %>%
-            summarise(conexoes = list(expand.grid(
-              setor_atuacao = elo[atuacao == 1],
-              setor_investimento = elo[investimento == 1]
-            )), .groups = "drop") %>%
-            unnest(conexoes) %>%
-            count(setor_atuacao, setor_investimento, name = "value")
-          
-          heatmap_data <- links %>%
-            spread(key = setor_investimento, value = value, fill = 0)
-          
-          heatmap_matrix <- as.matrix(heatmap_data[,-1])  
-          
-          rownames(heatmap_matrix) <- heatmap_data$setor_atuacao
-          colnames(heatmap_matrix) <- colnames(heatmap_data)[-1]
-          
-          fig <- plot_ly(
-            z = heatmap_matrix, 
-            x = colnames(heatmap_matrix),  
-            y = rownames(heatmap_matrix),  
-            type = "heatmap",  
-            colors = "Reds",  
-            colorbar = list(title = "Contagem")  
-          )
-          
-          fig
+            
+            cru_stack3$set_ativ <- factor(cru_stack3$set_ativ, levels = cru_stack3 %>%
+                                           group_by(set_ativ) %>%
+                                           summarise(sum_y = sum(cru_stack3$invest_elo, na.rm = TRUE)) %>%
+                                           arrange(-sum_y) %>%
+                                           pull(set_ativ))
+            
+            plot <- ggplot(cru_stack3, aes(x = elo, y = invest_elo, fill = elo)) +
+              geom_bar(stat = "identity") +
+              geom_text(aes(y = invest_elo + (max(invest_elo, na.rm = TRUE) * 0.08), 
+                            label = paste0(invest_elo, " (", scales::percent(p_elo_setor, accuracy = 0.01), ")")),
+                        vjust = -1.2, size = 3) +
+              scale_fill_manual(values = cores_fjles_claro) +
+              labs(title = "Investimentos por elo na cadeia do alimento por setor") +  
+              theme_minimal() +
+              theme(
+                plot.title = element_text(margin = margin(b = 20)),
+                axis.title.x = element_blank(),
+                axis.title.y = element_blank(),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                legend.text = element_text(size = 10),
+                strip.text = element_text(size = 11,  margin = margin(b = 30, t = 30)), 
+                strip.placement = "outside"
+              ) +
+              guides(fill = guide_legend(title = NULL)) +
+              facet_wrap(~set_ativ, ncol = 1, strip.position = "right", scales = "free_y")  
+            
+            plotly <- ggplotly(plot, tooltip = NULL, height = 750) %>%
+              style(hoverinfo = "none") %>%
+              config(
+                modeBarButtonsToRemove = c("zoom2d", "zoomIn2d", "zoomOut2d", "autoScale2d",
+                                           "pan2d", "select2d", "lasso2d", "resetScale2d",
+                                           "hoverClosestCartesian", "hoverCompareCartesian", 
+                                           "toggleSpikelines"),
+                displaylogo = FALSE
+              )
+            
+            return(plotly)
           
         })
         
@@ -904,7 +922,7 @@ server <- function(input, output, session) {
         
         output$cru_4 <- renderPlotly({
           
-          cru_bar<- cru_bar %>%
+          cru_bar <- cru_bar %>%
             mutate(set_ativ = fct_reorder(set_ativ, -razao, .fun = sum))
           
           plot <- ggplot(cru_bar, aes(x = set_ativ, y = razao, fill = set_ativ)) +
@@ -1017,6 +1035,13 @@ server <- function(input, output, session) {
         tagList(plotlyOutput("perfil_4"),
                 em("*Cada empresa pode priorizar a segurança alimentar em um ou mais anos. Por isso, a soma dos totais de priorizações não corresponde ao total de 98 empresas analisadas."))
       }
+      else if (input$grafico_perfil  == "Certificações por setor") {
+        tagList(plotlyOutput("perfil_5"),
+                em("*Cada empresa analisada poderia ter mais de um certificado ou nenhum. O “n” foi calculado a partir do total de certificados por setor empresarial,
+                   e a proporção considerou o número de certificados em relação ao número de empresas analisadas no setor.
+                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
+                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas, e 27 do comercio varejista."))
+      }
     })
     
   # Renderização dinâmica dos gráficos de Ações de Empresa
@@ -1053,8 +1078,16 @@ server <- function(input, output, session) {
     
     # Renderização dinâmica dos gráficos de Cruzamemtos
     output$dynamic_plot_cru <- renderUI({
-      if (input$grafico_cru == "Atuação e investimento nos elos da cadeia do alimento") {
-        plotlyOutput("cru_1")
+      if (input$grafico_cru == "Investimentos por elo na cadeia do alimento por setor") {
+        tagList(plotlyOutput("cru_1", height = "750px"),
+                em("*Cada ação analisada poderia estar relacionada a mais de um elo da cadeia do alimento ou a nenhum.
+                   O “n” total foi calculado a partir da soma de todas as ações relacionadas aos elos que foram financiadas ou apoiadas por empresas do respectivo setor,
+                   e as proporções consideraram esse “n” em relação à quantidade de empresas analisadas por setor.
+                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
+                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
+                   e 27 do comercio varejista. Já as proporções dentro das barras, consideraram o número total de ações por elo da cadeia do alimento dentro de cada setor.
+                   Assim, é possível analisar tanto qual setor investe mais, proporcionalmente e em números absolutos,
+                   quanto qual o elo priorizado dentro de cada setor."))
       } else if (input$grafico_cru == "Ações por setor e ESG") {
         tagList(plotlyOutput("cru_2"),
                 em("*Cada ação analisada poderia estar relacionada a mais de um tripé do ESG ou a nenhum.
@@ -1075,14 +1108,6 @@ server <- function(input, output, session) {
                    e 27 do comercio varejista. Já as proporções dentro das barras, consideraram o número total de ações por grupo envolvido dentro de cada setor.
                    Assim, é possível analisar tanto qual setor investe mais, proporcionalmente e em números absolutos,
                    quanto qual o grupo priorizado dentro de cada setor."))
-      } else if (input$grafico_cru == "Média de certificações por empresa e por setor") {
-        tagList(plotlyOutput("cru_4"),
-                em("*Cada empresa analisada poderia ter mais de um certificado ou nenhum.
-                   O “n” foi calculado a partir da média aproximada de certificados por setor empresarial,
-                   e a proporção considerou o número de certificados em relação ao número de empresas analisadas no setor.
-                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
-                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
-                   e 27 do comercio varejista.")) 
-        } 
+      } 
     })
 }

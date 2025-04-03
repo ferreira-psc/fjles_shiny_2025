@@ -6,7 +6,7 @@ p_load(shinydashboard, shiny, htmltools, DT, scales, ggplot2,
        plotly, geobr, sf,leaflet, bslib, dygraphs, readxl,
        tidyverse, readr,  devtools, lubridate, arrow, here,
        data.table, shinyjs, bslib, leaflet.extras, 
-       shinyWidgets, stringi, logging, RColorBrewer, rio, viridis)
+       shinyWidgets, stringi, logging, rio)
 
 #### CORES ####
   cores_fjles <- c("#ED1B2F", "#71BF44", "#1B65A6", "#FF7F00", "#FFFF33")
@@ -19,7 +19,7 @@ p_load(shinydashboard, shiny, htmltools, DT, scales, ggplot2,
     "#CCCC29", "#FFFF33", "#FFFF99" 
     )
   
-  cores_fjles_claro <- c("#FF5566", "#A3E076", "#4C9EE6","#FFA64D","#FFFF99")
+  cores_fjles_claro <- c("#FF5566", "#A3E076", "#4C9EE6","#FFA64D","#FFFF99", "#00FFFF")
   
 #### DADOS ####
   

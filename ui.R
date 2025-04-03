@@ -33,14 +33,15 @@ ui <- dashboardPage(
               fluidRow(
                 box(
                   width = 12, 
-                  leafletOutput("mapa_fund"),
+                  leafletOutput("mapa_fund", ),
                   div(id = "tabela_execucoes_mapa_fund",
                       actionButton("fechar_tabela_mapa_fund", "X", class = "btn-danger"),
                       DTOutput("tabela_mapa_fund") 
                   ), em("*Foi considerada como presente na região qualquer ação realizada em pelo menos um estado daquela área.
                   Além disso, cada iniciativa poderia ter sido implementada em um ou mais estados e regiões,
                   o que explica a discrepância entre a soma das ações por região e o total de 387 ações analisadas.
-                        Dentre as quais, 85 delas não possuem informações de onde foram realizadas.")
+                        Dentre as quais, 85 delas não possuem informações de onde foram realizadas.",
+                        style = "display: block; margin-top: 10px; font-size: 12px;")
                 )),
               fluidRow(
                 box(width = 6, 
@@ -88,7 +89,8 @@ ui <- dashboardPage(
                                        choices = c("Por setor", 
                                                    "Que possuem fundações, por setor",
                                                    "Por atuação nos elos da cadeia do alimento", 
-                                                   "Por priorização da segurança alimentar por ano")
+                                                   "Por priorização da segurança alimentar por ano",
+                                                   "Certificações por setor")
                            )
               ), valueBoxOutput("total_perfil", width = 6)
               ),
@@ -134,7 +136,8 @@ ui <- dashboardPage(
                   ), em("*Foi considerada como presente na região qualquer ação realizada em pelo menos um estado daquela área.
                   Além disso, cada iniciativa poderia ter sido implementada em um ou mais estados e regiões,
                   o que explica a discrepância entre a soma das ações por região e o total de 696 ações analisadas.
-                        Dentre as quais, 262 não possuem informações de onde foram realizadas.")
+                        Dentre as quais, 262 não possuem informações de onde foram realizadas.",
+                        style = "display: block; margin-top: 10px; font-size: 12px;")
                 )),
               fluidRow(
                 box(width = 6, 
@@ -180,14 +183,14 @@ ui <- dashboardPage(
               fluidRow(
                 box(width = 12, 
                     selectInput("grafico_cru", "Escolha o gráfico:", 
-                                choices = c("Atuação e investimento nos elos da cadeia do alimento",
+                                choices = c("Investimentos por elo na cadeia do alimento por setor",
                                             "Ações por setor e ESG",
-                                            "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional",  #ESCOLHA DO GRÁFICO PELO INPUT DO USUÁRIO
-                                            "Média de certificações por empresa e por setor")
+                                            "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional")
                     )
                 ),
                 box(width = 12,
-                    uiOutput("dynamic_plot_cru") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT (GRÁFICOS DE BARRAS)
+                    #height = "900px", 
+                    uiOutput("dynamic_plot_cru") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT 
                 )
               ))
       )

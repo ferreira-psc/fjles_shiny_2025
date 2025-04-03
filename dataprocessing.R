@@ -146,8 +146,26 @@ for (obj in names(data)) {
   assign(cleaned_name, data[[obj]])
 }
 
-elo_atua_x_investe_por_empresa <- elo_atua_x_investe_por_empresa %>% 
-  mutate(investimento = ifelse(total_acoes > 0, 1, 0)) 
+labels_elo <- c("elo_prod_ali" = "Produção de alimentos",
+            "elo_arm" = "Armazenamento",
+            "elo_tra_log" = "Transporte",
+            "elo_pro" = "Processamento",
+            "elo_var_atac"= "Varejo/Atacado",
+            "elo_con" = "Consumo"
+)
+
+elo_invest_setor <- elo_atua_x_investe_por_empresa %>% 
+  left_join(perfil_banco, by = "empresa") %>% 
+  select(elo, set_ativ, total_acoes) %>% 
+  group_by(elo, set_ativ) %>% 
+  summarise(invest_elo = sum(total_acoes), .groups = "drop") %>% 
+  group_by(set_ativ) %>% 
+  mutate(invest_setor = sum(invest_elo), 
+         p_elo_setor = invest_elo / invest_setor) %>% 
+  ungroup() %>% 
+  mutate(p_total_setor = invest_setor / sum(invest_elo))%>% 
+  mutate(elo = recode(elo, !!!labels_elo)) %>% 
+  filter(invest_elo != 0)
 
 labels_gru <- c("gru_agri_fam" = "Agricultores familiares",
             "gru_dem_esp" = "Grupos demográficos específicos (ex: mulheres, quilombolas, indígenas, etc.)",
@@ -156,6 +174,7 @@ labels_gru <- c("gru_agri_fam" = "Agricultores familiares",
 
 setor_x_grupos_p_por_setor <- setor_x_grupos_p_por_setor %>%
   group_by(set_ativ) %>%
+  mutate(p_setor = n / sum(n)) %>% 
   mutate(total_setor = sum(n)) %>%
   ungroup()%>% 
   mutate(p_total = total_setor / sum(n)) %>% 
@@ -171,11 +190,6 @@ setor_x_esg <- setor_x_esg %>%
   ungroup() %>%
   mutate(p_total = total_setor / sum(n)) %>% 
   mutate(name = recode(name, !!!labels_esg))
-
-certificados_x_setor$razao = certificados_x_setor$n_cert / certificados_x_setor$n_setor
-
-certificados_x_setor<- certificados_x_setor %>%
-  mutate(set_ativ = fct_reorder(set_ativ, -razao, .fun = sum))
 
 #### DADOS + GEOMETRIA ####
 
@@ -249,7 +263,7 @@ write_xlsx(list(fund_binario = fund_binario,
                 cru_stack1 = setor_x_esg,
                 cru_stack2 = setor_x_grupos_p_por_setor,
                 cru_bar = certificados_x_setor,
-                cru_sankey = elo_atua_x_investe_por_empresa),
+                cru_stack3 = elo_invest_setor),
            "data/dados_tratados.xlsx")
 
 # Converter geometria para WKT para cada dataframe
