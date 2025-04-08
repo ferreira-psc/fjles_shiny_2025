@@ -30,8 +30,7 @@ perfil_codebook <- codebook_2 %>% select(-4) %>%
 
 # Remoção de colunas desnecessárias
 emp_banco <- acoes  %>%
-  select(- c(5, 31, 32, 80, 81, 82,
-             83, 84, 85, 86, 87, 88, 89, 90))
+  select(- c(5, 31, 32, 79, 80, 81, 82, 83, 84, 85))
 
 perfil_banco <- categorias_empresas %>% 
   select(- c(41, 42, 43, 44, 45, 46, 47))
@@ -77,7 +76,7 @@ emp_mapa <- emp_binario  %>%
 ods2 <- emp_mapa %>%
   pivot_longer(cols = starts_with("ods_2"), names_to = "ods2", values_to = "valor") %>%
   filter(valor == 1) %>%
-  group_by(id_emp, id_iniciativa, estado_atua) %>%
+  group_by(id_emp, id_ini, estado_atua) %>%
   summarise(ods2 = str_c(ods2, collapse = ", "), .groups = "drop")
 
 objetivos <- emp_mapa %>%  
@@ -93,13 +92,13 @@ objetivos <- emp_mapa %>%
                             "obj_res_emp" = "Melhores Práticas de Responsabilidade Empresariais",
                             "obj_agri_fam" = "Fortalecimento da Agricultura Familiar",
                             "obj_red_desp" = "Redução de Desperdícios")) %>%
-  group_by(id_emp, id_iniciativa, estado_atua) %>%
+  group_by(id_emp, id_ini, estado_atua) %>%
   summarise(objetivos = str_c(objetivos, collapse = ", "), .groups = "drop")
 
 # União das duas bases de transformação e seleção das colunas usadas no Mapa
 emp_mapa <- emp_mapa %>%
-  left_join(ods2, by = c("id_emp", "id_iniciativa", "estado_atua")) %>%
-  left_join(objetivos, by = c("id_emp", "id_iniciativa", "estado_atua")) %>%
+  left_join(ods2, by = c("id_emp", "id_ini", "estado_atua")) %>%
+  left_join(objetivos, by = c("id_emp", "id_ini", "estado_atua")) %>%
   select(empresa, tipo, iniciativa, ods2, estado_atua, name_region, mecanismo, objetivos)
 
 #### FUNDAÇÕES ####
@@ -132,7 +131,7 @@ fund_binario <- fund_banco %>%
 fund_mapa <- fund_binario%>%
   separate_rows(estado_atua, sep = ";") %>% 
   mutate(estado_atua = gsub("^\\s+", "", estado_atua)) %>% 
-  filter(!estado_atua %in% c("s/i", "na", ""))%>%
+  filter(!estado_atua %in% c("s/i", "na", "")) %>%
   mutate(estado_atua = recode(estado_atua, #Correção de erros na base
                                   "Amazonas" = "Amazônas",
                                   "Rio Grade do Sul" = "Rio Grande do Sul"))

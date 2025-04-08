@@ -19,7 +19,7 @@ p_load(shinydashboard, shiny, htmltools, DT, scales, ggplot2,
     "#CCCC29", "#FFFF33", "#FFFF99" 
     )
   
-  cores_fjles_claro <- c("#FF5566", "#A3E076", "#4C9EE6","#FFA64D","#FFFF99", "#00FFFF")
+  cores_fjles_claro <- c("#FF5566", "#A3E076", "#4C9EE6","#FFA64D","#FFFF99", "purple")
   
 #### DADOS ####
   

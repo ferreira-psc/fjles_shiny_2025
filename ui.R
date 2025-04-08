@@ -135,7 +135,7 @@ ui <- dashboardPage(
                       DTOutput("tabela_mapa_emp") # Tabela de ações por estado
                   ), em("*Foi considerada como presente na região qualquer ação realizada em pelo menos um estado daquela área.
                   Além disso, cada iniciativa poderia ter sido implementada em um ou mais estados e regiões,
-                  o que explica a discrepância entre a soma das ações por região e o total de 696 ações analisadas.
+                  o que explica a discrepância entre a soma das ações por região e o total de 681 ações analisadas.
                         Dentre as quais, 262 não possuem informações de onde foram realizadas.",
                         style = "display: block; margin-top: 10px; font-size: 12px;")
                 )),
