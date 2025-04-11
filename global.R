@@ -6,7 +6,7 @@ p_load(shinydashboard, shiny, htmltools, DT, scales, ggplot2,
        plotly, geobr, sf,leaflet, bslib, dygraphs, readxl,
        tidyverse, readr,  devtools, lubridate, arrow, here,
        data.table, shinyjs, bslib, leaflet.extras, 
-       shinyWidgets, stringi, logging, rio)
+       shinyWidgets, stringi, logging, rio, patchwork)
 
 #### CORES ####
   cores_fjles <- c("#ED1B2F", "#71BF44", "#1B65A6", "#FF7F00", "#FFFF33")

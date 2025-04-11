@@ -8,7 +8,6 @@ p_load( readxl, tidyverse, readr, arrow, here, data.table,
         rio, janitor, bslib, geobr, sf, stringr, openxlsx2,
         stringr, stringdist,  writexl)
 
-
 #### EMPRESAS ####
 
 # Importação dos dados de empresas (Ações e Perfil)
@@ -30,10 +29,11 @@ perfil_codebook <- codebook_2 %>% select(-4) %>%
 
 # Remoção de colunas desnecessárias
 emp_banco <- acoes  %>%
-  select(- c(5, 31, 32, 79, 80, 81, 82, 83, 84, 85))
+  select(- c(5, 9, 31, 32, 42,  79, 80, 81, 82, 83, 84, 85, starts_with("emp_"), 
+             starts_with("multi_")))
 
 perfil_banco <- categorias_empresas %>% 
-  select(- c(41, 42, 43, 44, 45, 46, 47))
+  select(- c(33, 34, 35, 36, 37, 38, 39, 41, 42, 43, 44, 45, 46, 47))
 
 # Transformação de variáveis binárias
 emp_binario <- emp_banco %>% 
@@ -99,7 +99,7 @@ objetivos <- emp_mapa %>%
 emp_mapa <- emp_mapa %>%
   left_join(ods2, by = c("id_emp", "id_ini", "estado_atua")) %>%
   left_join(objetivos, by = c("id_emp", "id_ini", "estado_atua")) %>%
-  select(empresa, tipo, iniciativa, ods2, estado_atua, name_region, mecanismo, objetivos)
+  select(id_ini, empresa, tipo, iniciativa, ods2, estado_atua, name_region, mecanismo, objetivos)
 
 #### FUNDAÇÕES ####
 
@@ -135,6 +135,73 @@ fund_mapa <- fund_binario%>%
   mutate(estado_atua = recode(estado_atua, #Correção de erros na base
                                   "Amazonas" = "Amazônas",
                                   "Rio Grade do Sul" = "Rio Grande do Sul"))
+
+# Removendo as variáveis de ID de todos os bancos a serem exibidos
+lapply(ls(pattern = "banco$"), \(x) assign(x, get(x)[, !grepl("^id", names(get(x)))], envir = .GlobalEnv))
+
+#Remoção de variáveis não exibidas
+emp_codebook <- emp_codebook %>%
+  filter(.data[["Variáveis"]] %in% colnames(emp_banco))
+
+perfil_codebook <- perfil_codebook %>%
+  filter(.data[["Variáveis sobre as características empresariais"]] %in% colnames(perfil_banco))
+
+fund_codebook <- fund_codebook %>%
+  filter(.data[["Variável"]] %in% colnames(fund_banco))
+
+# Reordenando as variáveis de acordo com a ordem do relatório
+emp_banco <- emp_banco %>%
+  select(
+    empresa,
+    setor,
+    iniciativa,
+    descricao,
+    tipo,
+    apoio_insti,
+    starts_with("elo_"),
+    starts_with("obj_"),
+    starts_with("ods_"),
+    mecanismo,
+    social, ambiental, governanca,
+    starts_with("part_"),
+    starts_with("gru_"),
+    estado_atua,
+    starts_with("reg_"),
+    starts_with("ano"),
+    parceiro, org_exec, tipo_exec,
+    emergencial,
+    inicio, fim, status, long_dur  
+  )
+
+# Reordenando as variáveis de acordo com a ordem do relatório
+fund_banco <- fund_banco %>%
+  select(
+    fund_insti,
+    iniciativa,
+    descricao,
+    tipo,
+    apoio_insti,
+    abrangencia,
+    starts_with("elo_"),
+    starts_with("obj_"),
+    starts_with("ods_"),
+    mecanismo,
+    estado_atua,
+    starts_with("reg_"),
+    starts_with("ano"),
+    emergencial,
+    inicio, fim, status, long_dur  
+  )
+
+emp_codebook <- emp_codebook %>%
+  mutate(ordem = match(.data[["Variáveis"]], names(emp_banco))) %>%
+  arrange(ordem) %>%
+  select(-ordem)
+
+fund_codebook <- fund_codebook %>%
+  mutate(ordem = match(.data[["Variável"]], names(fund_banco))) %>%
+  arrange(ordem) %>%
+  select(-ordem)
 
 #### CRUZAMENTOS ####
 
@@ -213,29 +280,51 @@ fund_estado <- fund_mapa %>%
   mutate(name_state_norm = stri_trans_general(estado_atua, "Latin-ASCII") %>%
            tolower()) %>%
   left_join(estados_data, by = "name_state_norm") %>% 
-  select(-name_state_norm) %>%  
+  select(-name_state_norm) %>%
   st_as_sf() %>%
   st_transform(crs = 4326)
 
-fund_regiao <- fund_mapa %>%
-  group_by(estado_atua) %>%
-  summarise(contagem = n()) %>% 
-  mutate(name_state_norm = stri_trans_general(estado_atua, "Latin-ASCII") %>%
-           tolower()) %>%
-  left_join(estados_data, by = "name_state_norm") %>% 
-  select(-name_state_norm) %>%  
-  group_by(name_region) %>%
-  summarise(contagem = sum(contagem)) %>% 
+fund_estado$estado_atua<-str_to_title(fund_estado$estado_atua) 
+
+fund_regiao <- fund_binario %>%
+  select(id_ini, starts_with("reg")) %>%
+  distinct() %>%
+  filter(if_all(starts_with("reg"), ~ !is.na(.) & . != "n/a" & . != "s/i")) %>%
+  summarise(across(starts_with("reg"), ~ sum(as.numeric(.), na.rm = TRUE))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "name_region",
+    values_to = "contagem"
+  ) %>%
+  mutate(name_region = recode(name_region,
+                              reg_n = "Norte",
+                              reg_ne = "Nordeste",
+                              reg_co = "Centro Oeste",
+                              reg_se = "Sudeste",
+                              reg_s = "Sul")) %>% 
   left_join(regioes_data, by = "name_region") %>% 
   st_as_sf() %>% 
   st_transform(crs = 4326)
 
-emp_regiao <- emp_mapa %>% 
-  group_by(name_region) %>%
-  summarise(contagem = n()) %>%
+emp_regiao <- emp_binario %>%
+  select(id_ini, starts_with("reg")) %>%
+  distinct() %>%
+  filter(if_all(starts_with("reg"), ~ !is.na(.) & . != "n/a" & . != "s/i")) %>%
+  summarise(across(starts_with("reg"), ~ sum(as.numeric(.), na.rm = TRUE))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "name_region",
+    values_to = "contagem"
+  ) %>%
+  mutate(name_region = recode(name_region,
+                              reg_n = "Norte",
+                              reg_ne = "Nordeste",
+                              reg_co = "Centro Oeste",
+                              reg_se = "Sudeste",
+                              reg_s = "Sul")) %>% 
   left_join(regioes_data, by = "name_region") %>% 
   st_as_sf() %>% 
-  st_transform(crs = 4326) 
+  st_transform(crs = 4326)
 
 emp_estado <- emp_mapa %>%
   group_by(estado_atua) %>%
@@ -280,3 +369,13 @@ write_parquet(fund_regiao_wkt, "data/fund_regiao.parquet")
 #### LIMPAR AMBIENTE ####
 rm(list = ls())
 gc()
+
+
+
+
+ 
+
+
+
+
+
