@@ -405,11 +405,7 @@ server <- function(input, output, session) {
                     position = position_stack(vjust = 0.5), size = 3) +  
           geom_text(aes(y = !!sym(total_var) + (max(.data[[total_var]], na.rm = TRUE) * 0.08), 
                         label = paste0(
-                          !!sym(total_var), 
-                          " (", 
-                          scales::percent(!!sym(total_var)/681, accuracy = 0.01), 
-                          ")"
-                        )),
+                          !!sym(total_var))),
                     vjust = -1.2, size = 3.5) +
           scale_fill_manual(values = colors) +
           labs(title = title) +  
@@ -545,7 +541,7 @@ server <- function(input, output, session) {
     output$fund_3 <- renderPlotly({
       
       data_fund_3 <- fund_binario %>%
-        select(id_ini, starts_with("obj_")) %>%  # Agora starts_with() está dentro de select()
+        select(id_ini, starts_with("obj_")) %>%  
         distinct() %>% 
         pivot_longer(cols = starts_with("obj_"), values_to = "objetivos") %>%
         select(-name) %>%   
@@ -576,8 +572,10 @@ server <- function(input, output, session) {
       
       data_fund_4 <- fund_binario %>%
         select(id_ini, starts_with("ods_")) %>% 
-        distinct() %>%  
-        summarise(across(-which(names(.) == "id_ini"), sum)) %>%  
+        group_by(id_ini) %>%
+        summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+        ungroup() %>%
+        summarise(across(-id_ini, sum, na.rm = TRUE)) %>% 
         pivot_longer(cols = everything(), names_to = "ods", values_to = "acoes") %>%
         mutate(relativo = (acoes / sum(acoes)) * 100) %>%
         mutate(ods = recode(ods, !!!labels)) %>%
@@ -600,8 +598,10 @@ server <- function(input, output, session) {
       
       data_fund_5 <- fund_binario %>%
         select(id_ini, starts_with("elo_")) %>% 
-        distinct() %>%  
-        summarise(across(-which(names(.) == "id_ini"), sum)) %>%   
+        group_by(id_ini) %>%
+        summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+        ungroup() %>%
+        summarise(across(-id_ini, sum, na.rm = TRUE)) %>%  
         pivot_longer(cols = everything(), names_to = "elo", values_to = "acoes") %>%
         mutate(relativo = (acoes / sum(acoes)) * 100) %>%
         mutate(elo = recode(elo, !!!labels)) %>%
@@ -621,8 +621,10 @@ server <- function(input, output, session) {
       data_fund_6 <- fund_binario %>%
         select(id_ini, starts_with("ano")) %>%
         mutate(across(everything(), ~ suppressWarnings(as.numeric(as.character(.))))) %>% 
-        distinct() %>%  
-        summarise(across(-which(names(.) == "id_ini"), sum)) %>% 
+        group_by(id_ini) %>%
+        summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+        ungroup() %>%
+        summarise(across(-id_ini, sum, na.rm = TRUE)) %>%  
         pivot_longer(cols = everything(), names_to = "ano", values_to = "acoes") %>%
         mutate(relativo = (acoes / sum(acoes, na.rm = TRUE)) * 100) %>%
         mutate(ano = recode(ano, !!!labels)) %>%
@@ -768,8 +770,10 @@ server <- function(input, output, session) {
       
       data_emp_3 <- emp_binario %>%
         select(id_ini, starts_with("obj_")) %>%
-        distinct() %>%
-        summarise(across(starts_with("obj_"), sum, na.rm = TRUE)) %>%  
+        group_by(id_ini) %>%
+        summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+        ungroup() %>%
+        summarise(across(-id_ini, sum, na.rm = TRUE)) %>%  
         pivot_longer(cols = everything(), names_to = "objetivo", values_to = "acoes") %>%
         mutate(relativo = (acoes / sum(acoes)) * 100) %>%
         mutate(objetivo = recode(objetivo, !!!labels)) %>%
@@ -797,8 +801,10 @@ server <- function(input, output, session) {
         
         data_emp_4 <- emp_binario %>%
           select(id_ini, starts_with("ods_")) %>% 
-          distinct() %>%  
-          summarise(across(-which(names(.) == "id_ini"), sum)) %>%  
+          group_by(id_ini) %>%
+          summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+          ungroup() %>%
+          summarise(across(-id_ini, sum, na.rm = TRUE)) %>% 
           pivot_longer(cols = everything(), names_to = "ods", values_to = "acoes") %>%
           mutate(relativo = (acoes / sum(acoes)) * 100) %>%
           mutate(ods = recode(ods, !!!labels)) %>%
@@ -820,8 +826,10 @@ server <- function(input, output, session) {
         
         data_emp_5 <- emp_binario %>%
           select(id_ini, starts_with("elo_")) %>% 
-          distinct() %>%  
-          summarise(across(-which(names(.) == "id_ini"), sum)) %>%  
+          group_by(id_ini) %>%
+          summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+          ungroup() %>%
+          summarise(across(-id_ini, sum, na.rm = TRUE)) %>% 
           pivot_longer(cols = everything(), names_to = "elo", values_to = "acoes") %>%
           mutate(relativo = (acoes / sum(acoes)) * 100) %>%
           mutate(elo = recode(elo, !!!labels)) %>%
@@ -843,7 +851,7 @@ server <- function(input, output, session) {
           group_by(id_ini) %>%
           summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
           ungroup() %>%
-          summarise(across(-id_ini, sum, na.rm = TRUE))%>% 
+          summarise(across(-id_ini, sum, na.rm = TRUE)) %>% 
           pivot_longer(cols = everything(), names_to = "esg", values_to = "acoes") %>%
           mutate(relativo = (acoes / sum(acoes)) * 100) %>%
           mutate(esg = recode(esg, !!!labels)) %>%
@@ -863,8 +871,10 @@ server <- function(input, output, session) {
         
         data_emp_7 <- emp_binario %>%
           select(id_ini, starts_with("part_")) %>% 
-          distinct() %>%  
-          summarise(across(-which(names(.) == "id_ini"), sum)) %>%  
+          group_by(id_ini) %>%
+          summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+          ungroup() %>%
+          summarise(across(-id_ini, sum, na.rm = TRUE)) %>%   
           pivot_longer(cols = everything(), names_to = "pti", values_to = "acoes") %>%
           mutate(relativo = (acoes / sum(acoes)) * 100) %>%
           mutate(pti = recode(pti, !!!labels)) %>%
@@ -909,8 +919,10 @@ server <- function(input, output, session) {
           
           data_emp_9 <- emp_binario %>%
             select(id_ini, starts_with("gru_")) %>% 
-            distinct() %>%  
-            summarise(across(-which(names(.) == "id_ini"), sum)) %>%
+            group_by(id_ini) %>%
+            summarise(across(everything(), ~as.numeric(any(. == 1, na.rm = TRUE)))) %>%
+            ungroup() %>%
+            summarise(across(-id_ini, sum, na.rm = TRUE)) %>% 
             pivot_longer(cols = everything(), names_to = "gru", values_to = "acoes") %>%
             mutate(relativo = (acoes / sum(acoes)) * 100) %>%
             mutate(gru = recode(gru, !!!labels)) %>%
@@ -1138,34 +1150,22 @@ server <- function(input, output, session) {
     output$dynamic_plot_cru <- renderUI({
       if (input$grafico_cru == "Investimentos por elo na cadeia do alimento por setor") {
         tagList(plotlyOutput("cru_1", height = "750px"),
-                em("*Cada ação analisada poderia estar relacionada a mais de um elo da cadeia do alimento ou a nenhum.
-                   O “n” total foi calculado a partir da soma de todas as ações relacionadas aos elos que foram financiadas ou apoiadas por empresas do respectivo setor,
-                   e as proporções consideraram esse “n” em relação à quantidade de empresas analisadas por setor.
-                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
-                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
-                   e 27 do comercio varejista. Já as proporções dentro das barras, consideraram o número total de ações por elo da cadeia do alimento dentro de cada setor.
-                   Assim, é possível analisar tanto qual setor investe mais, proporcionalmente e em números absolutos,
-                   quanto qual o elo priorizado dentro de cada setor."))
+                em("*Cada ação analisada poderia estar relacionada a um ou mais benefícios do ESG, ou até mesmo a nenhum. O “n” total foi calculado a partir da soma de todas as ações que tinham benefícios ESG e foram financiadas ou apoiadas por empresas do respectivo setor.
+                   Cada ação foi contabilizada o número de vezes equivalente à quantidade de benefícios que gerou.
+                   Ex: se uma ação teve benefício ambiental e social, ela foi contabilizada duas vezes.
+                   Se ela gerou os três benefícios, equivaleu a três."))
       } else if (input$grafico_cru == "Ações por setor e ESG") {
         tagList(plotlyOutput("cru_2"),
-                em("*Cada ação analisada poderia estar relacionada a mais de um tripé do ESG ou a nenhum.
-                   O “n” total foi calculado a partir da soma de todas as ações que tinham benefícios ESG e foram financiadas ou apoiadas por empresas do respectivo setor,
-                   e as proporções consideraram esse “n” em relação à quantidade de empresas analisadas por setor.
-                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
-                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
-                   e 27 do comercio varejista. Já as proporções dentro das barras, consideraram o número total de ações por benefício ESG dentro de cada setor.
-                   Assim, é possível analisar tanto qual setor investe mais, proporcionalmente e em números absolutos,
-                   quanto qual o benefício ESG priorizado dentro de cada setor."))
+                em("*Cada ação analisada poderia estar relacionada a um ou mais benefícios do ESG, ou até mesmo a nenhum.
+                   O “n” total foi calculado a partir da soma de todas as ações que tinham benefícios ESG e foram financiadas ou apoiadas por empresas do respectivo setor.
+                   Cada ação foi contabilizada o número de vezes equivalente à quantidade de benefícios que gerou.
+                   Ex: se uma ação teve benefício ambiental e social, ela foi contabilizada duas vezes. Se ela gerou os três benefícios, equivaleu a três."))
       } else if (input$grafico_cru ==  "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional") {
         tagList(plotlyOutput("cru_3"),
-                em("*Cada ação analisada poderia estar relacionada a mais de um grupo ou a nenhum.
-                   O “n” total foi calculado a partir da soma de todas as ações relacionadas aos grupos que foram financiadas ou apoiadas por empresas do respectivo setor,
-                   e as proporções consideraram esse “n” em relação à quantidade de empresas analisadas por setor.
-                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
-                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas,
-                   e 27 do comercio varejista. Já as proporções dentro das barras, consideraram o número total de ações por grupo envolvido dentro de cada setor.
-                   Assim, é possível analisar tanto qual setor investe mais, proporcionalmente e em números absolutos,
-                   quanto qual o grupo priorizado dentro de cada setor."))
+                em("*Cada ação analisada poderia estar relacionada a um ou mais grupos, ou a nenhum deles.
+                   O “n” total foi calculado a partir da soma de todas as ações relacionadas aos grupos que foram financiadas ou apoiadas por empresas do respectivo setor. Cada ação foi contabilizada o número de vezes equivalente à quantidade de grupos envolvidos ou impactados.
+                   Ex: se uma ação envolveu agricultores familiares e crianças e adolescentes, ela foi contabilizada duas vezes.
+                   Se ela envolveu agricultores familiares, crianças e adolescentes, e grupos demográficos específicos, equivaleu a três."))
       } 
     })
 }

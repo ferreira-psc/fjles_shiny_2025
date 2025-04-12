@@ -212,51 +212,6 @@ for (obj in names(data)) {
   assign(cleaned_name, data[[obj]])
 }
 
-labels_elo <- c("elo_prod_ali" = "Produção de alimentos",
-            "elo_arm" = "Armazenamento",
-            "elo_tra_log" = "Transporte",
-            "elo_pro" = "Processamento",
-            "elo_var_atac"= "Varejo/Atacado",
-            "elo_con" = "Consumo"
-)
-
-elo_invest_setor <- elo_atua_x_investe_por_empresa %>% 
-  left_join(perfil_banco, by = "empresa") %>% 
-  select(elo, set_ativ, total_acoes) %>% 
-  group_by(elo, set_ativ) %>% 
-  summarise(invest_elo = sum(total_acoes), .groups = "drop") %>% 
-  group_by(set_ativ) %>% 
-  mutate(invest_setor = sum(invest_elo), 
-         p_elo_setor = invest_elo / invest_setor) %>% 
-  ungroup() %>% 
-  mutate(p_total_setor = invest_setor / sum(invest_elo))%>% 
-  mutate(elo = recode(elo, !!!labels_elo)) %>% 
-  filter(invest_elo != 0)
-
-labels_gru <- c("gru_agri_fam" = "Agricultores familiares",
-            "gru_dem_esp" = "Grupos demográficos específicos (ex: mulheres, quilombolas, indígenas, etc.)",
-            "gru_vul_eco" = "Grupos em situação de vulnerabilidade econômica",
-            "gru_cri_ado" = "Crianças e adolescentes")
-
-setor_x_grupos_p_por_setor <- setor_x_grupos_p_por_setor %>%
-  group_by(set_ativ) %>%
-  mutate(p_setor = n / sum(n)) %>% 
-  mutate(total_setor = sum(n)) %>%
-  ungroup()%>% 
-  mutate(p_total = total_setor / sum(n)) %>% 
-  mutate(name = recode(name, !!!labels_gru)) 
-
-labels_esg <- c("social" = "Benefício Social",
-                "ambiental" = "Benefício Ambiental",
-                "governanca" = "Benefício de Governança da Empresa")
-
-setor_x_esg <- setor_x_esg %>%
-  group_by(set_ativ) %>%
-  mutate(total_setor = sum(n)) %>%
-  ungroup() %>%
-  mutate(p_total = total_setor / sum(n)) %>% 
-  mutate(name = recode(name, !!!labels_esg))
-
 #### DADOS + GEOMETRIA ####
 
 # Dados espaciais regionais (GEOBR 2020) e cálculo de centróides
