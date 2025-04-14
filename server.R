@@ -627,8 +627,7 @@ server <- function(input, output, session) {
         summarise(across(-id_ini, sum, na.rm = TRUE)) %>%  
         pivot_longer(cols = everything(), names_to = "ano", values_to = "acoes") %>%
         mutate(relativo = (acoes / sum(acoes, na.rm = TRUE)) * 100) %>%
-        mutate(ano = recode(ano, !!!labels)) %>%
-        mutate(ano = fct_reorder(ano, -acoes, .fun = sum)) 
+        mutate(ano = recode(ano, !!!labels)) 
       
       create_plotly(data_fund_6, "ano","acoes", "Ações por Ano de financiamento (n = 331)", cores_fjles, 331)
       
@@ -659,7 +658,7 @@ server <- function(input, output, session) {
       data_perfil_2$set_ativ <- factor(data_perfil_2$set_ativ, 
                                       levels = data_perfil_2$set_ativ[order(data_perfil_2$acoes, decreasing = TRUE)])
       
-      create_plotly(data_perfil_2, "set_ativ","acoes", "Empresas, que possuem fundações, por setor (n = 98)", cores_fjles, 98)
+      create_plotly(data_perfil_2, "set_ativ","acoes", "Empresas que possuem fundações por setor (n = 36)", cores_fjles, 36)
       
     })
     
@@ -717,7 +716,7 @@ server <- function(input, output, session) {
       data_perfil_5 <- cru_bar %>%
         mutate(set_ativ = fct_reorder(set_ativ, -n_cert))
       
-      create_plotly(data_perfil_5, "set_ativ","n_cert", "Certificações por setor (n = 98)", cores_fjles, 98)
+      create_plotly(data_perfil_5, "set_ativ","n_cert", "Certificações por setor (n = 558)", cores_fjles, 558)
       
     })
 
@@ -818,11 +817,11 @@ server <- function(input, output, session) {
       output$emp_5 <- renderPlotly({
       
         labels <- c("elo_prod_ali" = "Produção de alimentos",
-                    "elo_arm" = "Armazenamento",
-                    "elo_tra_log" = "Transporte",
-                    "elo_pro" = "Processamento",
+                    "elo_armaz" = "Armazenamento",
+                    "elo_trans_log" = "Transporte",
+                    "elo_process" = "Processamento",
                     "elo_var_atac"= "Varejo/Atacado",
-                    "elo_con" = "Consumo")
+                    "elo_consu" = "Consumo")
         
         data_emp_5 <- emp_binario %>%
           select(id_ini, starts_with("elo_")) %>% 
@@ -901,8 +900,7 @@ server <- function(input, output, session) {
             pivot_longer(cols = everything(), names_to = "ano", values_to = "acoes") %>%
             mutate(
               relativo = (acoes / sum(acoes, na.rm = TRUE)) * 100,
-              ano = recode(ano, !!!labels),
-              ano = fct_reorder(ano, -acoes)
+              ano = recode(ano, !!!labels)
             )
           
           create_plotly(data_emp_8, "ano","acoes", "Ações por ano de financiamento (n = 681)", cores_fjles, 681)
@@ -941,6 +939,9 @@ server <- function(input, output, session) {
             "Processamento", "Varejo/Atacado", "Consumo"
           ))
           
+          cru_stack3 <- cru_stack3 %>%
+            mutate(set_ativ_lab = paste0(set_ativ, " (n = ", invest_setor, ")"))
+          
           plot <- ggplot(cru_stack3, aes(x = elo, y = invest_elo, fill = elo)) +
             geom_bar(stat = "identity") +
             geom_text(aes(
@@ -965,9 +966,8 @@ server <- function(input, output, session) {
               legend.position = "bottom"
             ) +
             guides(fill = guide_legend(title = NULL)) +
-            facet_wrap(~set_ativ, ncol = 1, scales = "free_y")
+            facet_wrap(~set_ativ_lab, ncol = 1, scales = "free_y")
           
-
           plotly <- ggplotly(plot, tooltip = NULL, height = 750) %>%
             style(hoverinfo = "none") %>%
             config(
@@ -981,17 +981,18 @@ server <- function(input, output, session) {
           return(plotly)
         })
         
+        
         output$cru_2 <- renderPlotly({
           
           grafico_stack(cru_stack1, "set_ativ", "n", "name", "p",
-                        "Ações por setor e ESG (n = 681)", "total_setor", "p_total", cores_fjles_claro)
+                        "Ações por setor e ESG", "total_setor", "p_total", cores_fjles_claro)
           
         })
         
         output$cru_3 <- renderPlotly({
           
           grafico_stack(cru_stack2, "set_ativ", "n", "name", "p_setor",
-                        "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional (n = 681)",
+                        "Ações por setor e por grupos em maior risco de insegurança alimentar e nutricional",
                         "total_setor", "p_total", cores_fjles_claro)
           
         })
@@ -1064,7 +1065,7 @@ server <- function(input, output, session) {
                    Os valores relativos foram calculados a partir do total de ações analisadas. "))
       } else if (input$grafico_fund  == "Ano de financiamento") {
         tagList(plotlyOutput("fund_6"),
-                em("*Cada ação pode receber financiamento em um ou mais anos.
+                em("*Cada ação pode ter recebido financiamento em um ou mais anos.
                    Por isso, a soma dos totais de financiamento não corresponde ao total de 331 ações analisadas. 
                    Os valores relativos foram calculados a partir do total de ações analisadas."))
       } 
@@ -1075,12 +1076,12 @@ server <- function(input, output, session) {
       if (input$grafico_perfil == "Por setor") {
         tagList(plotlyOutput("perfil_1"),
                 em("*Os valores relativos foram calculados a partir do total de 98 empresas analisadas."))
-      } else if (input$grafico_perfil  == "Que possuem fundações, por setor") {
+      } else if (input$grafico_perfil  == "Que possuem fundações por setor") {
         tagList(plotlyOutput("perfil_2"),
                 em("*Os valores do gráfico foram calculados em relação ao total de 36 empresas que possuem fundações ou institutos.
                    O número de fundações ou institutos é inferior ao total de empresas categorizadas como “possui instituto/fundação”, uma vez que as empresas Castolanda, Frísia e Capal possuem a mesma fundação (Fundação ABC).
                    Assim, o número total de fundações/institutos é de 34.
-                   Os valores relativos foram calculados a partir do total de empresas analisadas."))
+                   Os valores relativos foram calculados a partir do total de empresas que possuíam fundações ou institutos."))
       } else if (input$grafico_perfil  == "Por atuação nos elos da cadeia do alimento") {
         tagList(plotlyOutput("perfil_3"),
                 em("*A soma do número de empresas atuantes em cada elo da cadeia do alimento ultrapassa o total de 98 empresas analisadas, uma vez que cada empresa poderia atuar em ao menos um elo e no máximo em todos.
@@ -1093,11 +1094,9 @@ server <- function(input, output, session) {
       }
       else if (input$grafico_perfil  == "Certificações por setor") {
         tagList(plotlyOutput("perfil_5"),
-                em("*Cada empresa analisada poderia ter mais de um certificado ou nenhum. O “n” foi calculado a partir do total de certificados por setor empresarial,
-                   e a proporção considerou o número de certificados em relação ao número de empresas analisadas no setor.
-                   Isso porque, apesar de o universo da pesquisa ter sido composto pelas 50 maiores empresas de cada setor,
-                   foram encontradas ações relacionadas ao ODS 2 em apenas 42 empresas do agronegócio, 29 do alimentos e bebidas, e 27 do comercio varejista.
-                   Os valores relativos foram calculados a partir do total de empresas analisadas."))
+                em("*Cada empresa analisada poderia ter mais de um certificado ou nenhum.
+                   O “n” foi calculado a partir do total de certificados por setor empresarial,
+                   e os valores relativos foram calculados a partir desse total."))
       }
     })
     
@@ -1136,7 +1135,7 @@ server <- function(input, output, session) {
                    Os valores relativos foram calculados a partir do total de ações analisadas."))
       } else if (input$grafico_emp == "Ano de financiamento") {
         tagList(plotlyOutput("emp_8"),
-                em("*Cada ação pode receber financiamento em um ou mais anos.
+                em("*Cada ação pode ter recebido financiamento em um ou mais anos.
                    Por isso, a soma dos totais de financiamento não corresponde ao total de 681 ações analisadas.
                    Os valores relativos foram calculados a partir do total de ações analisadas."))
       } else if (input$grafico_emp == "Grupos em maior risco de insegurança alimentar e nutricional") {
@@ -1150,10 +1149,9 @@ server <- function(input, output, session) {
     output$dynamic_plot_cru <- renderUI({
       if (input$grafico_cru == "Investimentos por elo na cadeia do alimento por setor") {
         tagList(plotlyOutput("cru_1", height = "750px"),
-                em("*Cada ação analisada poderia estar relacionada a um ou mais benefícios do ESG, ou até mesmo a nenhum. O “n” total foi calculado a partir da soma de todas as ações que tinham benefícios ESG e foram financiadas ou apoiadas por empresas do respectivo setor.
-                   Cada ação foi contabilizada o número de vezes equivalente à quantidade de benefícios que gerou.
-                   Ex: se uma ação teve benefício ambiental e social, ela foi contabilizada duas vezes.
-                   Se ela gerou os três benefícios, equivaleu a três."))
+                em("*Cada ação analisada poderia estar relacionada a um ou mais elos da cadeia do alimento, ou a nenhum deles.
+                   O “n” total foi calculado a partir da soma de todas as ações relacionadas aos elos que foram financiadas ou apoiadas por empresas do respectivo setor.
+                   As proporções consideraram o número de ações por elo da cadeia em relação ao número total de ações financiadas ou apoiadas pelo setor."))
       } else if (input$grafico_cru == "Ações por setor e ESG") {
         tagList(plotlyOutput("cru_2"),
                 em("*Cada ação analisada poderia estar relacionada a um ou mais benefícios do ESG, ou até mesmo a nenhum.

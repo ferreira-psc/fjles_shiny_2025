@@ -87,7 +87,7 @@ ui <- dashboardPage(
               fluidRow(box(width = 6, 
                            selectInput("grafico_perfil", "Empresas", #ESCOLHA DO GRÁFICO PELO INPUT DO USUÁRIO
                                        choices = c("Por setor", 
-                                                   "Que possuem fundações, por setor",
+                                                   "Que possuem fundações por setor",
                                                    "Por atuação nos elos da cadeia do alimento", 
                                                    "Por priorização da segurança alimentar por ano",
                                                    "Certificações por setor")
