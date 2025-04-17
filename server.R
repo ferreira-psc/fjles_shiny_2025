@@ -265,14 +265,14 @@ server <- function(input, output, session) {
             scrollX = TRUE,
             scrollY = "300px",
             paging = FALSE,
-            searching = FALSE,
+            searching = TRUE,
             initComplete = JS(sprintf(
               "
-          function(settings, json) {
-            var table = this.api();
-            var colunasParaRemover = [%s];
+  function(settings, json) {
+    var table = this.api();
+    var colunasParaRemover = [%s];
 
-            // Remove filtros das colunas especificadas
+    // Remove filtros das colunas especificadas
             colunasParaRemover.forEach(function(index) {
               $('thead tr:eq(1) th:eq(' + index + ') input').remove();
               $('thead tr:eq(1) th:eq(' + index + ')').html('');
@@ -285,24 +285,29 @@ server <- function(input, output, session) {
 
               if (colunasParaRemover.includes(idx)) return;
 
-              var select = $('<select><option value=\"\">' + column.header().textContent + '</option></select>')
-                .appendTo($(column.header()).empty())
-                .on('change', function() {
-                  var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                  column.search(val ? '^' + val + '$' : '', true, false).draw();
-                });
+      var select = $('<select><option value=\"\">' + column.header().textContent + '</option></select>')
+        .on('change', function() {
+          var val = $.fn.dataTable.util.escapeRegex($(this).val());
+          column.search(val, true, false).draw();
+        });
 
-              column.data().unique().sort().each(function(d, j) {
-                select.append('<option value=\"' + d + '\">' + d + '</option>')
-              });
-            });
-              setTimeout(function() {
-                table.columns.adjust().draw();
-              }, 100);
-          }
-          ",
+      column.data().unique().sort().each(function(d, j) {
+        select.append('<option value=\"' + d + '\">' + d + '</option>');
+      });
+
+      var th = $(column.header());
+      th.html('');
+      th.append(select);
+    });
+
+    setTimeout(function() {
+      table.columns.adjust().draw();
+    }, 100);
+  }
+  ",
               paste(col_indices_to_remove, collapse = ", ")
             ))
+            
           )
         )
       })
