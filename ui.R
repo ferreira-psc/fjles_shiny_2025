@@ -193,6 +193,15 @@ ui <- dashboardPage(
                     uiOutput("dynamic_plot_cru") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT 
                 )
               ))
+      ), 
+     tags$footer(
+      class = "meu-rodape",
+      list(
+        "Dashboard desenvolvido por ",
+        tags$a(href = "https://www.linkedin.com/in/ana-ferreira-b981a5186/", "Ana Ferreira", target = "_blank"),
+        " (2025)"
       )
+    )
+    
     )
 )
