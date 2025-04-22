@@ -198,7 +198,7 @@ ui <- dashboardPage(
       class = "meu-rodape",
       list(
         "Dashboard desenvolvido por ",
-        tags$a(href = "https://www.linkedin.com/in/ana-ferreira-b981a5186/", "Ana Ferreira", target = "_blank"),
+        tags$a(href = "https://www.linkedin.com/in/ana-ferreira-psc/", "Ana Ferreira", target = "_blank"),
         " (2025)"
       )
     )

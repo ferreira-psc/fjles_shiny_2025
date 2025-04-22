@@ -32,4 +32,4 @@ Projeto *concluído*
 
 # Desenvolvedor
 
-[Ana Ferreira](https://www.linkedin.com/in/ana-ferreira-b981a5186/)
+[Ana Ferreira](https://www.linkedin.com/in/ana-ferreira-psc/)
