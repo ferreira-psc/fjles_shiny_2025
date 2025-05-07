@@ -2,6 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-.dados_empresas
-.dados_fundacoes
-.dados_cruzamentos
+/data/dados_cruzamentos.xlsx
+/data/dados_empresas.xlsx
+/data/dados_fundacoes.xlsx
