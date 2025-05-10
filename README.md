@@ -22,13 +22,8 @@
 
 Projeto *concluído*
 
-# Passo a passo
-
-> 1º passo: abrir o R project *shinyApp* em sua IDE;
-
-> 2º passo: rodar o R script *app.R* para visualizar a versão atual do Dashboard.
-
-> Observação: atualizações nos scripts devem ser devidamente reportadas e comentadas.
+# Visualização
+O deploy do aplicativo foi feito a partir do serviço gratuito do Posit (shinyapps.io) e pode ser visualizado no link (https://filantropiaedesenvolvimento.shinyapps.io/fjles_shiny_2025/)
 
 # Desenvolvedor
 
