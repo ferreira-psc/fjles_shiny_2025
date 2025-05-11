@@ -1,10 +1,16 @@
 # SCRIPT DE DEFINIÇÃO DA INTERFACE DO USUÁRIO
-ui <- dashboardPage(
+ui <- tagList(
+  tags$head(
+    tags$link(rel = "icon", type = "image/png", href = "favicon.png"),
+    # Título da aba (nome do seu app)
+    tags$title("Investimento e Apoio para Garantia da Soberania e Segurança Alimentar e Nutricional no Brasil")
+  ),
+  dashboardPage(
   dashboardHeader(title = tags$a(
                     href = 'https://fundacaojles.org.br/',
                     tags$img(src = 'logo_dpto.png',
-                             height = '120',
-                             width = '120'),
+                             height = '90',
+                             width = '90'),
                     class = "logo-container"
                     ),
                   titleWidth = 230
@@ -54,7 +60,7 @@ ui <- dashboardPage(
                   ),
               fluidRow(
                 box(width = 12,
-                  uiOutput("dynamic_plot_fund") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT (GRÁFICOS DE BARRAS)
+                    uiOutput("dynamic_plot_fund") #OUTPUTS DOS GRÁFICOS DEFINIDOS PELO INPUT (GRÁFICOS DE BARRAS)
               )
               ),
               fluidRow(
@@ -144,7 +150,8 @@ ui <- dashboardPage(
                            selectInput("grafico_emp", "Ações de Empresas por", 
                                        choices = c("Tipo", "Mecanismo", "Objetivo",  #ESCOLHA DO GRÁFICO PELO INPUT DO USUÁRIO
                                                    "ODS", "Elo da cadeia do alimento", "ESG",
-                                                   "Partes interessadas", "Ano de financiamento", "Grupos em maior risco de insegurança alimentar e nutricional")
+                                                   "Partes interessadas", "Ano de financiamento", "Grupos em maior risco de
+                                                   insegurança alimentar e nutricional")
                            )
               ), valueBoxOutput("total_emp", width = 6)
               ),
@@ -204,4 +211,4 @@ ui <- dashboardPage(
     )
     
     )
-)
+))

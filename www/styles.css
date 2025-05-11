@@ -9,25 +9,21 @@
     width: 100%;
 }
 
-/* Espaço para o conteúdo abaixo do cabeçalho */
 .content-wrapper {
-    margin-top: 70px;
+    padding-top: 50px;
 }
 
 /* Estilização do tema azul */
 .skin-blue .main-header .navbar {
     background-color: #192A3D;
-    height: 70px;
 }
 
 .skin-blue .main-header .logo {
     background-color: #192A3D;
-    height: 70px;
 }
 
 .skin-blue .main-sidebar {
     background-color: #192A3D;
-    padding-top: 70px;
 }
 
 /* Centralizar botão de menu */
@@ -97,10 +93,14 @@
     margin-left: 5px;
 }
 
+  .leaflet-container {
+    touch-action: auto !important;
+  }
+
 /* Tabela de execuções (Apenas sobre o mapa) */
 #tabela_execucoes_mapa_emp {
     position: absolute;  /* Faz a tabela flutuar sobre o mapa */
-    top: 35px; left: 55px; right: 40px; bottom: 45px; /* Ajuste da posição conforme necessário */
+    top: 35px; left: 55px; right: 40px; bottom: 80px; /* Ajuste da posição conforme necessário */
     background: rgba(255, 255, 255, 0.95); 
     padding: 15px;
     overflow: auto;  /* Adiciona rolagem se necessário */
@@ -131,7 +131,7 @@
 /* Tabela de execuções (Apenas sobre o mapa) */
 #tabela_execucoes_mapa_fund {
     position: absolute;  /* Faz a tabela flutuar sobre o mapa */
-    top: 35px; left: 55px; right: 40px; bottom: 45px; /* Ajuste da posição conforme necessário */
+    top: 35px; left: 55px; right: 40px; bottom: 80px; /* Ajuste da posição conforme necessário */
     background: rgba(255, 255, 255, 0.95); 
     padding: 15px;
     overflow: auto;  /* Adiciona rolagem se necessário */
@@ -156,8 +156,67 @@
 /* Ajuste para a tabela no seu conteúdo (se necessário) */
 #tabela_mapa_fund {
     width: 100%;  /* Garantir que a tabela ocupe toda a largura disponível */
-    max-height: 100%; /* Evita que ela ultrapasse os limites definidos pela div */
+    max-height: 90%; /* Evita que ela ultrapasse os limites definidos pela div */
 }
 
+/* Estilos para telas pequenas (celulares) */
+@media screen and (max-width: 600px) {
+ 
+ .content-wrapper {
+    padding-top: 100px;
+}
 
+/* Tabela de execuções (Apenas sobre o mapa) */
+#tabela_execucoes_mapa_fund {
+    position: absolute;  /* Faz a tabela flutuar sobre o mapa */
+    top: 35px; left: 55px; right: 40px; bottom: 200px; /* Ajuste da posição conforme necessário */
 
+}
+
+/* Botão de fechar */
+#fechar_tabela_mapa_fund {
+    font-size: 10px;
+    background: red;
+}
+
+/* Tabela de execuções (Apenas sobre o mapa) */
+#tabela_execucoes_mapa_emp {
+    position: absolute;  /* Faz a tabela flutuar sobre o mapa */
+    top: 35px; left: 55px; right: 40px; bottom: 200px; /* Ajuste da posição conforme necessário */
+
+}
+
+/* Botão de fechar */
+#fechar_tabela_mapa_emp {
+    font-size: 10px;
+    background: red;
+}
+
+  /* Ajusta tamanho da fonte em tabelas */
+  .dataTable {
+    font-size: 12px !important;
+  }
+  /* Reduz e alinha a barra de busca à direita */
+  .dataTables_filter {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  /* Reduz tamanho do input de busca do DataTables */
+  .dataTables_filter input {
+    font-size: 12px !important;
+    height: 25px !important;
+    padding: 2px 6px !important;
+    width: 100px !important; /* ou ajuste conforme o necessário */
+  }
+
+  /* Opcional: reduz o texto 'Search:' */
+  .dataTables_filter label {
+    font-size: 12px !important;
+  }
+  
+  .leaflet-container {
+    touch-action: auto !important;
+  }
+}

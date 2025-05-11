@@ -49,7 +49,154 @@ server <- function(input, output, session) {
       
       rv <- reactiveValues(region_selected = NULL, state_selected = NULL)  
       
-      # Definindo a exibição inicial do mapa, agregado por regiões
+      output[[id]] <- renderLeaflet({
+        leaflet() %>%
+          addProviderTiles("Esri.WorldImagery") %>%  
+          addPolygons(
+            data = dados_regiao,
+            fillColor = cores,
+            color = "white", weight = 0.7, smoothFactor = 0.5,
+            opacity = 1, fillOpacity = 0.9,
+            layerId = ~name_region
+          ) %>%
+          addCircleMarkers(
+            data = dados_regiao,
+            lng = ~lng, lat = ~lat,
+            radius = ~sqrt(contagem) * 0.8,
+            color = "#333333",
+            fillColor = "#333333",
+            fillOpacity = 0.9,
+            label = labels_group(dados_regiao, "name_region", "contagem"),
+            layerId = ~name_region
+          ) %>%
+          addLabelOnlyMarkers(
+            data = dados_regiao,
+            lng = ~lng, lat = ~lat,
+            label = ~round(contagem, 0),
+            labelOptions = labelOptions(
+              noHide = TRUE, direction = "center", textOnly = TRUE,
+              className = "label-marker"
+            )
+          ) %>%
+          addEasyButton(
+            easyButton(
+              icon = htmltools::tags$div(
+                style = "width: 19px; height: 29px; display: flex; align-items: center; justify-content: center;", 
+                htmltools::tags$i(class = "fa fa-refresh", style = "font-size: 22px; color: black;")
+              ), 
+              title = "Resetar mapa",
+              onClick = JS(paste0("function(btn, map) {Shiny.setInputValue('reset_", id, "', Math.random());
+        map.setView([-14.2350, -51.9253], 3);
+      }"))
+            )
+          )
+      })
+      
+      atualizar_nivel_estado <- function(click_id) {
+        rv$region_selected <- click_id
+        rv$state_selected <- NULL  
+        
+        estados_filtrados <- dados_estado %>%
+          filter(name_region == rv$region_selected)
+        
+        centro <- dados_regiao %>%
+          filter(name_region == rv$region_selected)
+        
+        pal <- colorNumeric("YlGnBu", domain = estados_filtrados$contagem)
+        
+        leafletProxy(id) %>%
+          clearShapes() %>%
+          clearMarkers() %>%
+          setView(lng = centro$lng, lat = centro$lat, zoom = 5.1) %>%
+          addPolygons(
+            data = estados_filtrados,
+            fillColor = ~pal(contagem),
+            color = "gray", weight = 1, smoothFactor = 0.5,
+            opacity = 1, fillOpacity = 0.9,
+            layerId = ~name_state
+          ) %>%
+          addCircleMarkers(
+            data = estados_filtrados,
+            lng = ~lng, lat = ~lat,
+            radius = ~sqrt(contagem) * 2,
+            color = "darkblue",
+            fillColor = "darkblue",
+            fillOpacity = 0.9,
+            label = labels_group(estados_filtrados, "name_state", "contagem"),
+            layerId = ~name_state
+          ) %>% 
+          addLabelOnlyMarkers(
+            data = estados_filtrados,
+            lng = ~lng, lat = ~lat,
+            label = ~round(contagem, 0),
+            labelOptions = labelOptions(
+              noHide = TRUE, direction = "center", textOnly = TRUE,
+              className = "label-marker"
+            )
+          )
+      }
+      
+      abrir_tabela_estado <- function(click_id) {
+        rv$state_selected <- click_id
+        
+        output[[paste0("tabela_", id)]] <- renderDT({
+          if (is.null(rv$state_selected) || !(rv$state_selected %in% dados_unique$estado_atua)) return(NULL)  
+          
+          acoes_mod <- dados_unique %>%
+            filter(estado_atua == rv$state_selected) %>%
+            select(all_of(colunas_selecionadas)) %>%
+            mutate(across(everything(), ~ ifelse(
+              nchar(.) > 40,
+              paste0(
+                "<div class='truncate-cell'>", ., "</div>",
+                "<span class='expand-button' onclick='toggleExpand(this)'>[+]</span>"
+              ),
+              .
+            )))
+          
+          datatable(acoes_mod, 
+                    rownames = FALSE,
+                    escape = FALSE, 
+                    class = "compact",
+                    options = list(scrollY = "280px", scrollX = TRUE, paging = FALSE, dom = 't'))
+        })
+        
+        shinyjs::show(paste0("tabela_execucoes_", id))  
+      }
+      
+      # clique em polígonos
+      observeEvent(input[[paste0(id, "_shape_click")]], {
+        click <- input[[paste0(id, "_shape_click")]]
+        if (is.null(click$id)) return()
+        
+        if (click$id %in% dados_regiao$name_region) {
+          atualizar_nivel_estado(click$id)
+        } else if (click$id %in% dados_unique$estado_atua) {
+          abrir_tabela_estado(click$id)
+        }
+      })
+      
+      # clique em marcadores
+      observeEvent(input[[paste0(id, "_marker_click")]], {
+        click <- input[[paste0(id, "_marker_click")]]
+        if (is.null(click$id)) return()
+        
+        if (click$id %in% dados_regiao$name_region) {
+          atualizar_nivel_estado(click$id)
+        } else if (click$id %in% dados_unique$estado_atua) {
+          abrir_tabela_estado(click$id)
+        }
+      })
+      
+      observeEvent(input[[paste0("fechar_tabela_", id)]], {
+        rv$state_selected <- NULL  
+        shinyjs::hide(paste0("tabela_execucoes_", id))  
+      })
+      
+      observeEvent(input[[paste0("reset_", id)]], {
+        rv$region_selected <- NULL  
+        rv$state_selected <- NULL  
+        
         output[[id]] <- renderLeaflet({
           leaflet() %>%
             addProviderTiles("Esri.WorldImagery") %>%  
@@ -57,7 +204,8 @@ server <- function(input, output, session) {
               data = dados_regiao,
               fillColor = cores,
               color = "white", weight = 0.7, smoothFactor = 0.5,
-              opacity = 1, fillOpacity = 0.9
+              opacity = 1, fillOpacity = 0.9,
+              layerId = ~name_region
             ) %>%
             addCircleMarkers(
               data = dados_regiao,
@@ -67,7 +215,7 @@ server <- function(input, output, session) {
               fillColor = "#333333",
               fillOpacity = 0.9,
               label = labels_group(dados_regiao, "name_region", "contagem"),
-              layerId = ~name_region  
+              layerId = ~name_region
             ) %>%
             addLabelOnlyMarkers(
               data = dados_regiao,
@@ -81,160 +229,18 @@ server <- function(input, output, session) {
             addEasyButton(
               easyButton(
                 icon = htmltools::tags$div(
-                  style = "width: 19px; height: 29px;
-              display: flex; align-items: center; justify-content: center;", 
-                  htmltools::tags$i(class = "fa fa-refresh",
-                                    style = "font-size: 22px; color: black;")
+                  style = "width: 19px; height: 29px; display: flex; align-items: center; justify-content: center;", 
+                  htmltools::tags$i(class = "fa fa-refresh", style = "font-size: 22px; color: black;")
                 ), 
                 title = "Resetar mapa",
                 onClick = JS(paste0("function(btn, map) {Shiny.setInputValue('reset_", id, "', Math.random());
-            map.setView([-14.2350, -51.9253], 3);
-          }"))
+          map.setView([-14.2350, -51.9253], 3);
+        }"))
               )
             )
         })
-      
-      # Exibindo estados da região selecionada
-        observeEvent(input[[paste0(id, "_marker_click")]], {
-          click <- input[[paste0(id, "_marker_click")]]
-  
-          if (is.null(click$id)) return()
-          
-          if (click$id %in% dados_regiao$name_region) {
-            rv$region_selected <- click$id
-            rv$state_selected <- NULL  
-            
-            estados_filtrados <- dados_estado %>%
-              filter(name_region == rv$region_selected)
-            
-            centro <- dados_regiao %>%
-              filter(name_region == rv$region_selected)
-            
-            pal <- colorNumeric("YlGnBu", domain = estados_filtrados$contagem)
-            
-            leafletProxy(id) %>%
-              clearShapes() %>%
-              clearMarkers() %>%
-              setView(lng = centro$lng, lat = centro$lat, zoom = 5.1) %>%
-              addPolygons(
-                data = estados_filtrados,
-                fillColor = ~pal(contagem),
-                color = "gray", weight = 1, smoothFactor = 0.5,
-                opacity = 1, fillOpacity = 0.9
-              ) %>%
-              addCircleMarkers(
-                data = estados_filtrados,
-                lng = ~lng, lat = ~lat,
-                radius = ~sqrt(contagem) * 2,
-                color = "darkblue",
-                fillColor = "darkblue",
-                fillOpacity = 0.9,
-                label = labels_group(estados_filtrados, "name_state", "contagem"),
-                layerId = ~name_state  
-              ) %>% 
-              addLabelOnlyMarkers(
-                data = estados_filtrados,
-                lng = ~lng, lat = ~lat,
-                label = ~round(contagem, 0),
-                labelOptions = labelOptions(
-                  noHide = TRUE, direction = "center", textOnly = TRUE,
-                  className = "label-marker"
-                )
-              ) 
-          }
-          
-        # Criando tabela quando um marcador de estado for clicado
-          if (click$id %in% dados_unique$estado_atua) {
-            rv$state_selected <- click$id
-            
-            output[[paste0("tabela_", id)]] <- renderDT({
-              if (is.null(rv$state_selected) || !(rv$state_selected %in% dados_unique$estado_atua)) {
-                return(NULL)  
-              }
-            
-            # Filtrando e selecionando as colunas conforme passadas como parâmetro
-              acoes_mod <- dados_unique %>%
-                filter(estado_atua == rv$state_selected) %>%
-                select(all_of(colunas_selecionadas)) %>%
-                mutate(across(everything(), ~ ifelse(
-                  nchar(.) > 40,
-                  paste0(
-                    "<div class='truncate-cell'>", ., "</div>",
-                    "<span class='expand-button' onclick='toggleExpand(this)'>[+]</span>"
-                  ),
-                  .
-                )))
-              
-              datatable(acoes_mod, 
-                        rownames = FALSE,
-                        escape = FALSE, 
-                        class = "compact",
-                        options = list(scrollY = "280px", scrollX = TRUE, paging = FALSE, dom = 't'))
-            })
-          
-          # Exibindo tabela
-            shinyjs::show(paste0("tabela_execucoes_", id))  
-        }
-      })
-      
-      # Fechando tabela quando botão vermelho for pressionado
-        observeEvent(input[[paste0("fechar_tabela_", id)]], {
-          rv$state_selected <- NULL  
-          shinyjs::hide(paste0("tabela_execucoes_", id))  
-        })
-      
-      # Resetando o mapa quando o botão for pressionado
-        observeEvent(input[[paste0("reset_", id)]], {
-          rv$region_selected <- NULL  
-          rv$state_selected <- NULL  
         
-        # Atualizando o mapa
-          output[[id]] <- renderLeaflet({
-            leaflet() %>%
-              addProviderTiles("Esri.WorldImagery") %>%  
-              addPolygons(
-                data = dados_regiao,
-                fillColor = cores,
-                color = "white", weight = 0.7, smoothFactor = 0.5,
-                opacity = 1, fillOpacity = 0.9
-              ) %>%
-              addCircleMarkers(
-                data = dados_regiao,
-                lng = ~lng, lat = ~lat,
-                radius = ~sqrt(contagem) * 0.8,
-                color = "#333333",
-                fillColor = "#333333",
-                fillOpacity = 0.9,
-                label = labels_group(dados_regiao, "name_region", "contagem"),
-                layerId = ~name_region  
-              ) %>%
-              addLabelOnlyMarkers(
-                data = dados_regiao,
-                lng = ~lng, lat = ~lat,
-                label = ~round(contagem, 0),
-                labelOptions = labelOptions(
-                  noHide = TRUE, direction = "center", textOnly = TRUE,
-                  className = "label-marker"
-                )
-              ) %>%
-              addEasyButton(
-                easyButton(
-                  icon = htmltools::tags$div(
-                    style = "width: 19px; height: 29px;
-                display: flex; align-items: center; justify-content: center;", 
-                    htmltools::tags$i(class = "fa fa-refresh",
-                                      style = "font-size: 22px; color: black;")
-                  ), 
-                  title = "Resetar mapa",
-                  onClick = JS(paste0("function(btn, map) {Shiny.setInputValue('reset_", id, "', Math.random());
-              map.setView([-14.2350, -51.9253], 3);
-            }"))
-                )
-              )
-          })
-        
-        # Fechando tabela, caso esteja aberta, antes do reset do mapa
-          shinyjs::hide(paste0("tabela_execucoes_", id))
+        shinyjs::hide(paste0("tabela_execucoes_", id))
       })
     }
     
